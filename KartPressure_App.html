@@ -1,0 +1,2136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0a">
+<title>KartPressure — Tire Setup Logger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0a0a0a;
+  --bg2:      #111111;
+  --bg3:      #181818;
+  --bg4:      #222222;
+  --border:   #2a2a2a;
+  --border2:  #333333;
+  --text:     #e8e8e0;
+  --text2:    #888880;
+  --text3:    #555550;
+  --amber:    #f5a623;
+  --amber2:   #c47d0e;
+  --amber-bg: rgba(245,166,35,0.08);
+  --green:    #39d98a;
+  --green-bg: rgba(57,217,138,0.08);
+  --red:      #ff4757;
+  --red-bg:   rgba(255,71,87,0.08);
+  --blue:     #4a9eff;
+  --blue-bg:  rgba(74,158,255,0.08);
+  --radius:   6px;
+  --font-display: 'Rajdhani', sans-serif;
+  --font-mono:    'Share Tech Mono', monospace;
+  --font-body:    'Inter', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Grid overlay bg ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(245,166,35,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245,166,35,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Layout ── */
+#app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ── Header ── */
+.app-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10,10,10,0.95);
+  backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 100;
+}
+.app-logo {
+  font-family: var(--font-display);
+  font-size: 20px; font-weight: 700; letter-spacing: 2px;
+  color: var(--amber);
+  text-transform: uppercase;
+}
+.app-logo span { color: var(--text2); font-weight: 400; }
+.header-weather {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+  cursor: pointer;
+}
+.weather-temp { font-family: var(--font-mono); font-size: 15px; color: var(--text); }
+.weather-loc  { font-size: 10px; color: var(--text3); letter-spacing: .5px; }
+
+/* ── Nav ── */
+.app-nav {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  position: sticky; top: 57px; z-index: 99;
+}
+.nav-tab {
+  flex: 1; padding: 10px 4px 9px;
+  font-family: var(--font-display);
+  font-size: 12px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; text-align: center;
+  color: var(--text3); border: none; background: none; cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+.nav-tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+/* ── Screen ── */
+.screen { display: none; padding: 20px; flex: 1; }
+.screen.active { display: block; }
+
+/* ── Section headers ── */
+.section-label {
+  font-family: var(--font-display);
+  font-size: 11px; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text3);
+  margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── Cards ── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card-title {
+  font-family: var(--font-display);
+  font-size: 14px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text);
+  margin-bottom: 12px;
+}
+
+/* ── Stat grid ── */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.stat-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+.stat-box {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.stat-label { font-size: 10px; color: var(--text3); letter-spacing: .5px; text-transform: uppercase; margin-bottom: 4px; }
+.stat-value { font-family: var(--font-mono); font-size: 18px; color: var(--text); line-height: 1; }
+.stat-value.amber { color: var(--amber); }
+.stat-value.green { color: var(--green); }
+.stat-value.red   { color: var(--red); }
+.stat-sub { font-size: 10px; color: var(--text3); margin-top: 3px; }
+
+/* ── Forms ── */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+.form-row.single { grid-template-columns: 1fr; }
+.field-group { display: flex; flex-direction: column; gap: 5px; }
+.field-label { font-size: 10px; color: var(--text3); letter-spacing: .5px; text-transform: uppercase; }
+input, select, textarea {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  padding: 9px 11px;
+  width: 100%;
+  outline: none;
+  transition: border-color .15s;
+  -webkit-appearance: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--amber); }
+input::placeholder { color: var(--text3); }
+select { cursor: pointer; }
+select option { background: var(--bg3); }
+textarea { resize: vertical; min-height: 64px; font-size: 13px; }
+
+/* ── Pressure inputs — big ── */
+.pressure-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-bottom: 8px;
+}
+.pressure-cell {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+.pressure-cell .p-pos {
+  font-size: 9px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase;
+}
+.pressure-cell input {
+  text-align: center; font-size: 20px; font-weight: 700;
+  background: transparent; border: none; border-bottom: 2px solid var(--border2);
+  border-radius: 0; padding: 2px 4px; width: 90px;
+  color: var(--amber);
+}
+.pressure-cell input:focus { border-bottom-color: var(--amber); }
+.pressure-cell .p-unit { font-size: 10px; color: var(--text3); }
+
+/* ── Lap time entry ── */
+.lap-entry-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px;
+}
+.lap-num {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--text3); min-width: 26px; text-align: right;
+}
+.lap-entry-row input { flex: 1; }
+.lap-best-mark {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green); flex-shrink: 0;
+  opacity: 0;
+}
+.lap-best-mark.show { opacity: 1; }
+.lap-del-btn {
+  background: none; border: none; color: var(--text3);
+  cursor: pointer; font-size: 16px; padding: 0 2px;
+  transition: color .15s;
+}
+.lap-del-btn:hover { color: var(--red); }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 11px 20px;
+  border-radius: var(--radius);
+  border: none; cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  white-space: nowrap;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--amber); color: #0a0a0a; }
+.btn-primary:hover { opacity: .88; }
+.btn-secondary { background: var(--bg3); border: 1px solid var(--border2); color: var(--text); }
+.btn-secondary:hover { border-color: var(--amber); color: var(--amber); }
+.btn-danger { background: var(--red-bg); border: 1px solid var(--red); color: var(--red); }
+.btn-ghost  { background: none; border: 1px solid var(--border); color: var(--text2); }
+.btn-ghost:hover { border-color: var(--amber); color: var(--amber); }
+.btn-sm { padding: 7px 14px; font-size: 11px; }
+.btn-full { width: 100%; }
+.btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+/* ── Tags / badges ── */
+.badge {
+  display: inline-block;
+  font-size: 10px; font-weight: 600; letter-spacing: .5px;
+  padding: 2px 8px; border-radius: 20px;
+  text-transform: uppercase;
+}
+.badge-green  { background: var(--green-bg);  color: var(--green); border: 1px solid rgba(57,217,138,.2); }
+.badge-amber  { background: var(--amber-bg);  color: var(--amber); border: 1px solid rgba(245,166,35,.2); }
+.badge-red    { background: var(--red-bg);    color: var(--red);   border: 1px solid rgba(255,71,87,.2); }
+.badge-blue   { background: var(--blue-bg);   color: var(--blue);  border: 1px solid rgba(74,158,255,.2); }
+
+/* ── Session history list ── */
+.session-item {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.session-item:hover { border-color: var(--border2); }
+.session-item-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.session-name {
+  font-family: var(--font-display);
+  font-size: 15px; font-weight: 700; letter-spacing: .5px;
+  color: var(--text);
+}
+.session-meta { font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+.session-stats { display: flex; gap: 16px; flex-wrap: wrap; }
+.session-stat { font-size: 11px; color: var(--text2); }
+.session-stat span { font-family: var(--font-mono); color: var(--amber); }
+
+/* ── Pressure guide table ── */
+.month-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.month-table th {
+  font-family: var(--font-display);
+  font-size: 10px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text3);
+  padding: 8px 6px; border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.month-table td {
+  padding: 9px 6px; border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 12px; color: var(--text);
+}
+.month-table tr:hover td { background: rgba(255,255,255,.02); }
+.month-table tr.current-month td { background: var(--amber-bg); }
+.month-table tr.current-month td:first-child { border-left: 2px solid var(--amber); }
+.p-race  { color: var(--green) !important; }
+.p-ok    { color: var(--blue) !important; }
+.p-caution{ color: var(--amber) !important; }
+.p-cold  { color: var(--red) !important; }
+
+/* ── Chart wrapper ── */
+.chart-wrap { position: relative; width: 100%; height: 200px; margin: 8px 0; }
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.85); z-index: 500;
+  align-items: flex-end; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 12px 12px 0 0;
+  width: 100%; max-width: 480px;
+  max-height: 90vh; overflow-y: auto;
+  padding: 20px;
+  animation: slideUp .25s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--amber);
+  margin-bottom: 16px;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 10px 20px;
+  font-size: 13px; color: var(--text);
+  z-index: 999; white-space: nowrap;
+  transition: transform .3s ease;
+  pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── Divider ── */
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── Responsive fixes ── */
+@media (max-width: 360px) {
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .pressure-cell input { font-size: 17px; width: 76px; }
+}
+
+/* ── Weather detail bar ── */
+.weather-bar {
+  display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto;
+  margin-bottom: 12px; padding-bottom: 4px;
+}
+.weather-chip {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 8px 12px;
+  display: flex; flex-direction: column; gap: 2px;
+  flex-shrink: 0; min-width: 80px;
+}
+.weather-chip .wc-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; }
+.weather-chip .wc-value { font-family: var(--font-mono); font-size: 15px; color: var(--text); }
+
+/* ── Upload zone ── */
+.upload-zone {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 20px; text-align: center;
+  color: var(--text3); font-size: 13px;
+  cursor: pointer; transition: border-color .15s, color .15s;
+  margin-bottom: 8px;
+}
+.upload-zone:hover { border-color: var(--amber); color: var(--amber); }
+.upload-zone input { display: none; }
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center; padding: 48px 20px;
+  color: var(--text3);
+}
+.empty-state .es-icon { font-size: 40px; margin-bottom: 12px; opacity: .4; }
+.empty-state .es-title {
+  font-family: var(--font-display); font-size: 16px;
+  font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--text2); margin-bottom: 6px;
+}
+.empty-state .es-sub { font-size: 13px; line-height: 1.6; }
+
+/* ── Session detail ── */
+.lap-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 13px;
+}
+.lap-row .lr-num { color: var(--text3); min-width: 28px; }
+.lap-row .lr-time { color: var(--text); flex: 1; }
+.lap-row .lr-delta { font-size: 11px; color: var(--text3); min-width: 52px; text-align: right; }
+.lap-row.best-lap .lr-time { color: var(--green); font-weight: 700; }
+.lap-row.off-lap  .lr-time { color: var(--red); }
+.lap-row .lr-flag { font-size: 10px; }
+
+/* ── Unit switcher ── */
+.unit-switcher {
+  display: flex; gap: 2px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3px;
+}
+.unit-btn {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700; letter-spacing: .5px;
+  padding: 5px 12px;
+  border: none; border-radius: 4px;
+  background: transparent; color: var(--text3);
+  cursor: pointer; transition: background .15s, color .15s;
+  text-transform: lowercase;
+}
+.unit-btn.active {
+  background: var(--amber); color: #0a0a0a;
+}
+.unit-btn:not(.active):hover { color: var(--text); }
+
+/* ── Stopwatch ── */
+.sw-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.sw-display {
+  background: #0d0d0d;
+  border-bottom: 1px solid var(--border);
+  padding: 24px 20px 20px;
+  text-align: center;
+  position: relative;
+}
+.sw-session-clock {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+.sw-time {
+  font-family: var(--font-mono);
+  font-size: 56px;
+  font-weight: 400;
+  color: var(--amber);
+  letter-spacing: -1px;
+  line-height: 1;
+  transition: color .15s;
+}
+.sw-time.sw-running { color: var(--green); }
+.sw-time.sw-stopped { color: var(--amber); }
+.sw-splits-row {
+  display: flex; justify-content: center; gap: 32px;
+  margin-top: 14px;
+}
+.sw-split {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.sw-split-label { font-size: 9px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; }
+.sw-split-val   { font-family: var(--font-mono); font-size: 17px; color: var(--text); }
+.sw-split-val.best  { color: var(--green); }
+.sw-split-val.worst { color: var(--red); }
+.sw-split-delta { font-size: 10px; color: var(--text3); font-family: var(--font-mono); }
+.sw-split-delta.plus  { color: var(--red); }
+.sw-split-delta.minus { color: var(--green); }
+.sw-lap-btn {
+  width: 100%; padding: 22px;
+  background: #0d1a0f;
+  border: none; border-bottom: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--green);
+  cursor: pointer;
+  transition: background .1s, color .1s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.sw-lap-btn:active { background: #0a2410; }
+.sw-lap-btn:disabled { color: var(--text3); background: var(--bg3); cursor: default; }
+.sw-controls {
+  display: flex; gap: 0;
+}
+.sw-ctrl-btn {
+  flex: 1; padding: 14px 8px;
+  border: none; border-right: 1px solid var(--border);
+  background: var(--bg3);
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text2);
+  cursor: pointer;
+  transition: background .1s, color .1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.sw-ctrl-btn:last-child { border-right: none; }
+.sw-ctrl-btn:active { background: var(--bg4); }
+.sw-ctrl-btn.start { color: var(--green); }
+.sw-ctrl-btn.stop  { color: var(--red); }
+.sw-ctrl-btn.reset { color: var(--text3); }
+.sw-ctrl-btn.send  { color: var(--amber); }
+.sw-lap-list {
+  max-height: 220px; overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+.sw-lap-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  animation: fadeIn .2s ease;
+}
+@keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+.sw-lap-row .slr-num  { font-family: var(--font-mono); font-size: 11px; color: var(--text3); min-width: 26px; }
+.sw-lap-row .slr-time { font-family: var(--font-mono); font-size: 15px; color: var(--text); flex: 1; }
+.sw-lap-row .slr-delta{ font-family: var(--font-mono); font-size: 11px; color: var(--text3); min-width: 52px; text-align: right; }
+.sw-lap-row.sw-best .slr-time { color: var(--green); }
+.sw-lap-row.sw-worst .slr-time { color: var(--red); }
+.sw-lap-row .slr-badge { font-size: 9px; font-weight: 700; letter-spacing: .5px; padding: 1px 6px; border-radius: 10px; }
+.sw-lap-row.sw-best .slr-badge { background: var(--green-bg); color: var(--green); }
+.sw-lap-row.sw-worst .slr-badge { background: var(--red-bg); color: var(--red); }
+.sw-empty { text-align:center; padding:20px; font-size:12px; color:var(--text3); }
+
+/* ── Pressure recommendation box ── */
+.rec-box {
+  background: var(--amber-bg);
+  border: 1px solid rgba(245,166,35,.25);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.rec-box .rec-title {
+  font-family: var(--font-display); font-size: 11px;
+  font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--amber); margin-bottom: 8px;
+}
+.rec-box .rec-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 8px; text-align: center;
+}
+.rec-box .rec-corner { font-size: 9px; color: var(--amber2); text-transform: uppercase; margin-bottom: 3px; }
+.rec-box .rec-val { font-family: var(--font-mono); font-size: 16px; color: var(--amber); font-weight: 700; }
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-logo">Kart<span>Pressure</span></div>
+    <div class="header-weather" onclick="refreshWeather()" title="Tap to refresh weather">
+      <div class="weather-temp" id="hdr-temp">— °C</div>
+      <div class="weather-loc" id="hdr-loc">TAP FOR WEATHER</div>
+    </div>
+  </header>
+
+  <!-- Nav -->
+  <nav class="app-nav">
+    <button class="nav-tab active" onclick="showScreen('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="showScreen('session')">Session</button>
+    <button class="nav-tab" onclick="showScreen('history')">History</button>
+    <button class="nav-tab" onclick="showScreen('guide')">Guide</button>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════
+       SCREEN 1: DASHBOARD
+  ════════════════════════════════════════════════ -->
+  <div class="screen active" id="screen-dashboard">
+
+    <div class="section-label">Weather at track</div>
+    <div class="weather-bar" id="weather-bar">
+      <div class="weather-chip"><div class="wc-label">Temp</div><div class="wc-value" id="w-temp">0.0°C</div></div>
+      <div class="weather-chip"><div class="wc-label">Humidity</div><div class="wc-value" id="w-hum">0%</div></div>
+      <div class="weather-chip"><div class="wc-label">Wind</div><div class="wc-value" id="w-wind">0 km/h</div></div>
+      <div class="weather-chip"><div class="wc-label">Pressure</div><div class="wc-value" id="w-baro">0 hPa</div></div>
+      <div class="weather-chip"><div class="wc-label">Cloud</div><div class="wc-value" id="w-cloud">0%</div></div>
+      <div class="weather-chip"><div class="wc-label">Precip</div><div class="wc-value" id="w-precip">0 mm</div></div>
+    </div>
+    <p style="font-size:10px;color:var(--text3);margin-bottom:16px;margin-top:-6px" id="weather-source">Tap the temperature in the header to refresh · <span id="weather-updated"></span></p>
+
+    <div class="rec-box" id="rec-box">
+      <div class="rec-title">Recommended cold start pressure</div>
+      <div class="rec-grid">
+        <div><div class="rec-corner">FL</div><div class="rec-val" id="rec-fl">0.00</div></div>
+        <div><div class="rec-corner">FR</div><div class="rec-val" id="rec-fr">0.00</div></div>
+        <div><div class="rec-corner">RL</div><div class="rec-val" id="rec-rl">0.00</div></div>
+        <div><div class="rec-corner">RR</div><div class="rec-val" id="rec-rr">0.00</div></div>
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:var(--amber2)" id="rec-note">Get GPS weather to generate recommendation</div>
+    </div>
+
+    <div class="section-label">Last session</div>
+    <div id="last-session-card">
+      <div class="empty-state">
+        <div class="es-icon">⏱</div>
+        <div class="es-title">No sessions yet</div>
+        <div class="es-sub">Go to Session tab to log your first run.</div>
+      </div>
+    </div>
+
+    <div class="section-label">Best lap trend</div>
+    <div class="card">
+      <div class="chart-wrap"><canvas id="trend-chart"></canvas></div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SCREEN 2: NEW SESSION
+  ════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-session">
+
+    <div class="section-label">Kart setup</div>
+    <div class="card">
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Circuit / Track</label>
+          <input id="f-circuit" type="text" placeholder="e.g. Paju Circuit">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Date</label>
+          <input id="f-date" type="date">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Session name</label>
+          <input id="f-session-name" type="text" placeholder="e.g. Session 2">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Start time</label>
+          <input id="f-time" type="time">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Chassis</label>
+          <input id="f-chassis" type="text" placeholder="e.g. FA Kart OTK">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Engine</label>
+          <input id="f-engine" type="text" placeholder="e.g. Rotax Max 125cc">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Tire make</label>
+          <input id="f-tires" type="text" placeholder="e.g. Mojo">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Tire age (sessions)</label>
+          <input id="f-tire-age" type="number" placeholder="0" min="0">
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="field-group">
+          <label class="field-label">Setup notes</label>
+          <textarea id="f-setup-notes" placeholder="Camber, toe, seat position, sprocket, etc."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Tire pressures</div>
+    <div class="card">
+      <!-- Unit switcher -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:11px;color:var(--text3)">Measurement unit</span>
+        <div class="unit-switcher" id="unit-switcher">
+          <button class="unit-btn active" data-unit="bar"  onclick="setUnit('bar')">bar</button>
+          <button class="unit-btn"        data-unit="psi"  onclick="setUnit('psi')">psi</button>
+          <button class="unit-btn"        data-unit="kpa"  onclick="setUnit('kpa')">kPa</button>
+        </div>
+      </div>
+
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Cold start pressures — set before going out</div>
+      <div class="pressure-grid">
+        <div class="pressure-cell"><div class="p-pos">FL</div><input id="p-fl-cold" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-cold-fl">bar</div></div>
+        <div class="pressure-cell"><div class="p-pos">FR</div><input id="p-fr-cold" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-cold-fr">bar</div></div>
+        <div class="pressure-cell"><div class="p-pos">RL</div><input id="p-rl-cold" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-cold-rl">bar</div></div>
+        <div class="pressure-cell"><div class="p-pos">RR</div><input id="p-rr-cold" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-cold-rr">bar</div></div>
+      </div>
+
+      <div style="font-size:11px;color:var(--text3);margin:10px 0 10px">Hot pressures — measure immediately after session</div>
+      <div class="pressure-grid">
+        <div class="pressure-cell"><div class="p-pos">FL</div><input id="p-fl-hot" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-hot-fl">bar</div></div>
+        <div class="pressure-cell"><div class="p-pos">FR</div><input id="p-fr-hot" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-hot-fr">bar</div></div>
+        <div class="pressure-cell"><div class="p-pos">RL</div><input id="p-rl-hot" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-hot-rl">bar</div></div>
+        <div class="pressure-cell"><div class="p-pos">RR</div><input id="p-rr-hot" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-hot-rr">bar</div></div>
+      </div>
+
+      <div style="font-size:10px;color:var(--text3);margin-top:10px;line-height:1.6" id="unit-conversion-ref"></div>
+    </div>
+
+    <div class="section-label">Stopwatch</div>
+    <div class="sw-card">
+
+      <!-- Main display -->
+      <div class="sw-display">
+        <div class="sw-session-clock" id="sw-session-clock">SESSION  00:00</div>
+        <div class="sw-time sw-stopped" id="sw-time">00:00.000</div>
+        <div class="sw-splits-row">
+          <div class="sw-split">
+            <div class="sw-split-label">Last lap</div>
+            <div class="sw-split-val" id="sw-last">—</div>
+            <div class="sw-split-delta" id="sw-last-delta"></div>
+          </div>
+          <div class="sw-split">
+            <div class="sw-split-label">Best lap</div>
+            <div class="sw-split-val best" id="sw-best">—</div>
+          </div>
+          <div class="sw-split">
+            <div class="sw-split-label">Lap #</div>
+            <div class="sw-split-val" id="sw-lapcount">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Big LAP button -->
+      <button class="sw-lap-btn" id="sw-lap-btn" onclick="swLap()" disabled>
+        TAP TO LAP
+      </button>
+
+      <!-- Start / Stop / Reset / Send controls -->
+      <div class="sw-controls">
+        <button class="sw-ctrl-btn start" id="sw-start-btn" onclick="swStart()">Start</button>
+        <button class="sw-ctrl-btn stop"  id="sw-stop-btn"  onclick="swStop()"  disabled>Stop</button>
+        <button class="sw-ctrl-btn reset" id="sw-reset-btn" onclick="swReset()">Reset</button>
+        <button class="sw-ctrl-btn send"  id="sw-send-btn"  onclick="swSendToList()" disabled>Send laps</button>
+      </div>
+
+      <!-- Live lap list -->
+      <div class="sw-lap-list" id="sw-lap-list">
+        <div class="sw-empty" id="sw-empty-msg">Start timer and tap LAP at each finish line crossing</div>
+      </div>
+
+    </div>
+
+    <div class="section-label">Lap times</div>
+    <div class="card">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Format: ss.ms (e.g. 42.87) or mm:ss.ms (e.g. 1:15.58)</div>
+      <div id="lap-list"></div>
+      <div class="btn-row">
+        <button class="btn btn-secondary btn-sm" onclick="addLapRow()">+ Add lap</button>
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+          Import CSV
+          <input type="file" accept=".csv,.txt" onchange="importCSV(this)" style="display:none">
+        </label>
+      </div>
+    </div>
+
+    <div class="section-label">Conditions &amp; weather</div>
+    <div class="card">
+      <div class="form-row three">
+        <div class="field-group">
+          <label class="field-label">Temp (°C)</label>
+          <input id="f-temp" type="number" step="0.1" placeholder="10">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Humidity (%)</label>
+          <input id="f-humidity" type="number" placeholder="60">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Wind (km/h)</label>
+          <input id="f-wind" type="number" placeholder="5">
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="fillWeatherFromGPS()" style="margin-top:4px">
+        Use GPS weather
+      </button>
+    </div>
+
+    <div class="btn-row" style="margin-bottom:32px">
+      <button class="btn btn-primary btn-full" onclick="saveSession()">Save Session</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearForm()">Clear</button>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SCREEN 3: HISTORY
+  ════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-history">
+    <div id="history-list"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SCREEN 4: PRESSURE GUIDE
+  ════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-guide">
+
+    <div class="section-label">Pressure model</div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="stat-grid three">
+        <div class="stat-box">
+          <div class="stat-label">Base rise</div>
+          <div class="stat-value amber">+0.07</div>
+          <div class="stat-sub">bar at 6°C</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Rise/°C</div>
+          <div class="stat-value amber">+0.008</div>
+          <div class="stat-sub">bar above 6°C</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Hot target</div>
+          <div class="stat-value green">0.83–0.87</div>
+          <div class="stat-sub">bar operating</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:160px"><canvas id="model-chart"></canvas></div>
+    </div>
+
+    <div class="section-label">Annual pressure guide — Paju</div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="month-table">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Avg °C</th>
+            <th>Morning</th>
+            <th>Midday</th>
+            <th>Afternoon</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="guide-tbody"></tbody>
+      </table>
+    </div>
+    <p style="font-size:10px;color:var(--text3);margin-top:8px">
+      Based on Paju historical climate data. Model calibrated on March 7, 2026 session (Mojo / Rotax Max 125cc).
+    </p>
+
+  </div>
+
+</div><!-- /#app -->
+
+<!-- ── Session detail modal ── -->
+<div class="modal-overlay" id="session-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="modal-title" id="modal-title">Session</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕ Close</button>
+    </div>
+    <div id="modal-body"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-primary" onclick="exportSessionPDF()" id="pdf-btn">Export PDF</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSession()" id="del-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div class="toast" id="toast"></div>
+
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let sessions = JSON.parse(localStorage.getItem('kp_sessions') || '[]');
+let weather  = JSON.parse(localStorage.getItem('kp_weather')  || 'null');
+let currentModalIdx = null;
+let trendChart = null, modelChart = null;
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const AVG_HIGH = [-0.44,3.24,10.01,15.84,21.42,25.35,26.87,28.10,24.04,18.19,10.23,1.31];
+const AVG_MEAN = [-3.93,-0.46,5.76,11.43,17.11,21.61,23.83,24.62,19.91,13.71,6.70,-1.75];
+const AVG_LOW  = [-7.49,-4.42,0.38,4.66,9.35,14.16,18.63,19.02,13.94,8.03,2.72,-4.98];
+
+function riseModel(t){ return 0.07 + Math.max(0, (t-6)*0.008); }
+function optCold(t)  { return Math.round(Math.max(0.65, Math.min(0.82, 0.85 - riseModel(t)))*1000)/1000; }
+function midday(i)   { return AVG_MEAN[i] + (AVG_HIGH[i]-AVG_MEAN[i])*0.6; }
+function morning(i)  { return AVG_LOW[i]  + (AVG_MEAN[i]-AVG_LOW[i])*0.4; }
+function afternoon(i){ return AVG_HIGH[i]*0.95; }
+
+function pClass(p){
+  if(p>=0.73&&p<=0.78) return 'p-race';
+  if(p>0.78&&p<=0.81)  return 'p-ok';
+  if(p>0.81)           return 'p-caution';
+  return 'p-cold';
+}
+function pLabel(p,t){
+  if(t<-2)             return 'Extreme cold';
+  if(p>=0.73&&p<=0.78) return 'Race window';
+  if(p>=0.70&&p<0.73)  return 'Slightly low';
+  if(p>0.78&&p<=0.81)  return 'Acceptable';
+  if(p>0.81)           return 'Lower cold set';
+  return 'Check';
+}
+
+// ═══════════════════════════════════════════════
+//  UNIT CONVERSION
+// ═══════════════════════════════════════════════
+const UNITS = {
+  bar: { toBar: v=>v,           fromBar: v=>v,           step:'0.01', decimals:3, factor:1       },
+  psi: { toBar: v=>v/14.5038,   fromBar: v=>v*14.5038,   step:'0.1',  decimals:1, factor:14.5038 },
+  kpa: { toBar: v=>v/100,       fromBar: v=>v*100,        step:'1',    decimals:0, factor:100     },
+};
+let currentUnit = localStorage.getItem('kp_unit') || 'bar';
+
+const P_IDS = ['p-fl-cold','p-fr-cold','p-rl-cold','p-rr-cold',
+               'p-fl-hot', 'p-fr-hot', 'p-rl-hot', 'p-rr-hot'];
+const P_LBL_IDS = ['unit-lbl-cold-fl','unit-lbl-cold-fr','unit-lbl-cold-rl','unit-lbl-cold-rr',
+                   'unit-lbl-hot-fl', 'unit-lbl-hot-fr', 'unit-lbl-hot-rl', 'unit-lbl-hot-rr'];
+
+function setUnit(newUnit) {
+  const prevUnit = currentUnit;
+  const prev = UNITS[prevUnit];
+  const next = UNITS[newUnit];
+
+  // Convert all existing values from previous unit → bar → new unit
+  P_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const v = parseFloat(el.value);
+    if(!isNaN(v) && v > 0) {
+      const inBar = prev.toBar(v);
+      el.value = next.fromBar(inBar).toFixed(next.decimals);
+    }
+    el.step = next.step;
+  });
+
+  // Update unit labels
+  P_LBL_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.textContent = newUnit;
+  });
+
+  // Update switcher buttons
+  document.querySelectorAll('.unit-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.unit === newUnit);
+  });
+
+  // Update placeholder text
+  const placeholders     = { bar:'0.00', psi:'0.0',  kpa:'0'  };
+  const hotPlaceholders  = { bar:'0.00', psi:'0.0',  kpa:'0'  };
+  ['p-fl-cold','p-fr-cold','p-rl-cold','p-rr-cold'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.placeholder = placeholders[newUnit];
+  });
+  ['p-fl-hot','p-fr-hot','p-rl-hot','p-rr-hot'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.placeholder = hotPlaceholders[newUnit];
+  });
+
+  // Show conversion reference
+  const ref = document.getElementById('unit-conversion-ref');
+  if(ref) {
+    const keyVals = newUnit==='bar'
+      ? '0.73 bar = 10.6 psi = 73 kPa  ·  0.76 bar = 11.0 psi = 76 kPa  ·  0.87 bar = 12.6 psi = 87 kPa'
+      : newUnit==='psi'
+      ? '10.6 psi = 0.73 bar  ·  11.0 psi = 0.76 bar  ·  12.6 psi = 0.87 bar  ·  13.5 psi = 0.93 bar'
+      : '73 kPa = 0.73 bar  ·  76 kPa = 0.76 bar  ·  87 kPa = 0.87 bar  ·  93 kPa = 0.93 bar';
+    ref.textContent = 'Reference: ' + keyVals;
+  }
+
+  currentUnit = newUnit;
+  localStorage.setItem('kp_unit', newUnit);
+
+  // Update recommendation box unit label
+  updateRecommendation();
+}
+
+// Read a pressure input and always return bar value (for storage)
+function readPressureBar(id) {
+  const v = parseFloat(document.getElementById(id)?.value);
+  if(isNaN(v) || v <= 0) return null;
+  return UNITS[currentUnit].toBar(v);
+}
+
+// Display a bar value in the current unit
+function barToDisplay(barVal, dec) {
+  if(barVal == null) return (0).toFixed(dec !== undefined ? dec : UNITS[currentUnit].decimals);
+  const d = dec !== undefined ? dec : UNITS[currentUnit].decimals;
+  return UNITS[currentUnit].fromBar(barVal).toFixed(d);
+}
+
+
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  const tabs = ['dashboard','session','history','guide'];
+  document.querySelectorAll('.nav-tab')[tabs.indexOf(name)].classList.add('active');
+  if(name==='dashboard') renderDashboard();
+  if(name==='history')   renderHistory();
+  if(name==='guide')     renderGuide();
+}
+
+// ═══════════════════════════════════════════════
+//  WEATHER — Source chain
+//
+//  PRIMARY:  KMA LDPS 1.5 km model via Open-Meteo
+//            Same forecast model used by weather.go.kr (기상청 날씨누리).
+//            KMA (Korea Meteorological Administration) runs LDPS at
+//            1.5 km resolution over the Korean Peninsula — the highest
+//            resolution public NWP model available for Korea.
+//            Accessed through the Open-Meteo free API (no key required).
+//            Docs: https://open-meteo.com/en/docs/kma-api
+//
+//  FALLBACK: Open-Meteo best_match (global WMO data)
+//  LAST:     wttr.in (global fallback, no key)
+//
+//  weather.go.kr itself is a JS-rendered browser app with no public
+//  REST endpoint. Its underlying forecast data (GDPS/LDPS models) is
+//  what we request directly from Open-Meteo's KMA model integration.
+// ═══════════════════════════════════════════════
+
+let weatherStatus = 'idle';
+
+function refreshWeather(){
+  if(weatherStatus === 'fetching' || weatherStatus === 'locating') return;
+  setWeatherStatus('locating', 'Locating…');
+
+  if(!navigator.geolocation){
+    toast('GPS not supported — using Paju default');
+    doFetchWeather(37.7599, 126.7802, 'default');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => doFetchWeather(pos.coords.latitude, pos.coords.longitude, 'gps'),
+    err => {
+      toast('Location access denied — using Paju coordinates');
+      doFetchWeather(37.7599, 126.7802, 'default');
+    },
+    { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true }
+  );
+}
+
+async function doFetchWeather(lat, lon, locSource){
+  setWeatherStatus('fetching', 'Fetching weather…');
+
+  const sources = [
+    () => fetchKMALDPS(lat, lon),
+    () => fetchOpenMeteoGlobal(lat, lon),
+    () => fetchWttr(lat, lon),
+  ];
+
+  let result = null;
+  for(const src of sources){
+    try { result = await src(); if(result) break; } catch(e){}
+  }
+
+  if(!result){
+    setWeatherStatus('error', 'Weather unavailable');
+    toast('All weather sources failed — check internet connection');
+    return;
+  }
+
+  result.lat = lat; result.lon = lon;
+  result.locSource = locSource;
+  result.fetchedAt = Date.now();
+  result.time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+  // Reverse geocode — Nominatim (OpenStreetMap, free, no key)
+  try {
+    const gr = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}&format=json&accept-language=en`,
+      { headers:{'Accept-Language':'en'} }
+    );
+    if(gr.ok){
+      const gd = await gr.json();
+      result.city    = gd.address.city || gd.address.town || gd.address.village ||
+                       gd.address.suburb || gd.address.county || '';
+      result.country = (gd.address.country_code||'').toUpperCase();
+    }
+  } catch(e){}
+
+  weather = result;
+  localStorage.setItem('kp_weather', JSON.stringify(weather));
+  setWeatherStatus('ok', result.sourceShort);
+  updateWeatherUI();
+}
+
+// ── Source 1: KMA LDPS 1.5 km (Korea-only, highest resolution) ───────────────
+// KMA LDPS covers the Korean Peninsula at 1.5 km grid spacing.
+// This is the same model powering weather.go.kr forecasts.
+// Open-Meteo ingests KMA model data and exposes it free of charge.
+async function fetchKMALDPS(lat, lon){
+  // Only use LDPS for Korean coordinates (domain boundary)
+  const inKorea = lat >= 33.0 && lat <= 43.0 && lon >= 124.0 && lon <= 132.0;
+  const model   = inKorea ? 'kma_ldps' : 'kma_gdps';
+  const label   = inKorea ? 'KMA LDPS 1.5 km (기상청)' : 'KMA GDPS 12 km (기상청)';
+  const short   = 'KMA 기상청';
+
+  const url = `https://api.open-meteo.com/v1/forecast?` +
+    `latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}` +
+    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,` +
+    `wind_speed_10m,wind_direction_10m,wind_gusts_10m,` +
+    `surface_pressure,cloud_cover,precipitation,weather_code,` +
+    `rain,snowfall,showers` +
+    `&models=${model}` +
+    `&timezone=Asia%2FSeoul` +
+    `&wind_speed_unit=kmh` +
+    `&forecast_days=1`;
+
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('KMA fetch failed');
+  const d = await r.json();
+  if(!d.current) throw new Error('No current data');
+  const c = d.current;
+
+  return {
+    temp:        c.temperature_2m,
+    feelsLike:   c.apparent_temperature,
+    humidity:    c.relative_humidity_2m,
+    wind:        c.wind_speed_10m,
+    windDir:     c.wind_direction_10m,
+    windGusts:   c.wind_gusts_10m,
+    pressure:    c.surface_pressure,
+    cloud:       c.cloud_cover,
+    precip:      c.precipitation || 0,
+    rain:        c.rain || 0,
+    snow:        c.snowfall || 0,
+    weatherCode: c.weather_code,
+    model,
+    source:      label,
+    sourceShort: short,
+    sourceUrl:   'https://www.weather.go.kr/w/index.do',
+  };
+}
+
+// ── Source 2: Open-Meteo global best_match (WMO) ─────────────────────────────
+async function fetchOpenMeteoGlobal(lat, lon){
+  const url = `https://api.open-meteo.com/v1/forecast?` +
+    `latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}` +
+    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,` +
+    `wind_speed_10m,wind_direction_10m,wind_gusts_10m,` +
+    `surface_pressure,cloud_cover,precipitation,weather_code` +
+    `&models=best_match` +
+    `&timezone=auto` +
+    `&wind_speed_unit=kmh`;
+
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('Open-Meteo failed');
+  const d = await r.json();
+  if(!d.current) throw new Error('No data');
+  const c = d.current;
+
+  return {
+    temp:        c.temperature_2m,
+    feelsLike:   c.apparent_temperature,
+    humidity:    c.relative_humidity_2m,
+    wind:        c.wind_speed_10m,
+    windDir:     c.wind_direction_10m,
+    windGusts:   c.wind_gusts_10m,
+    pressure:    c.surface_pressure,
+    cloud:       c.cloud_cover,
+    precip:      c.precipitation || 0,
+    weatherCode: c.weather_code,
+    source:      'Open-Meteo (WMO best_match)',
+    sourceShort: 'Open-Meteo',
+    sourceUrl:   'https://open-meteo.com',
+  };
+}
+
+// ── Source 3: wttr.in last-resort fallback ────────────────────────────────────
+async function fetchWttr(lat, lon){
+  const r = await fetch(`https://wttr.in/${lat.toFixed(4)},${lon.toFixed(4)}?format=j1`);
+  if(!r.ok) throw new Error('wttr failed');
+  const d = await r.json();
+  const cc = d.current_condition?.[0];
+  if(!cc) throw new Error('No data');
+  return {
+    temp:        parseFloat(cc.temp_C),
+    feelsLike:   parseFloat(cc.FeelsLikeC),
+    humidity:    parseFloat(cc.humidity),
+    wind:        parseFloat(cc.windspeedKmph),
+    windDir:     parseFloat(cc.winddirDegree),
+    pressure:    parseFloat(cc.pressure),
+    cloud:       parseFloat(cc.cloudcover),
+    precip:      parseFloat(cc.precipMM) || 0,
+    weatherCode: null,
+    source:      'wttr.in (fallback)',
+    sourceShort: 'wttr.in',
+    sourceUrl:   'https://wttr.in',
+  };
+}
+
+// ── WMO weather code → English description ────────────────────────────────────
+function wmoDesc(code){
+  if(code == null) return '';
+  if(code === 0) return 'Clear sky';
+  if(code <= 2)  return 'Partly cloudy';
+  if(code === 3) return 'Overcast';
+  if(code <= 49) return 'Fog';
+  if(code <= 55) return 'Drizzle';
+  if(code <= 65) return 'Rain';
+  if(code <= 75) return 'Snow';
+  if(code <= 82) return 'Rain showers';
+  if(code <= 86) return 'Snow showers';
+  if(code <= 99) return 'Thunderstorm';
+  return '';
+}
+
+// ── Wind direction abbreviation ───────────────────────────────────────────────
+function windDirLabel(deg){
+  if(deg == null) return '';
+  return ['N','NE','E','SE','S','SW','W','NW'][Math.round(deg/45)%8];
+}
+
+// ── Status text in header ─────────────────────────────────────────────────────
+function setWeatherStatus(status, msg){
+  weatherStatus = status;
+  const el = document.getElementById('hdr-loc');
+  if(status === 'locating' || status === 'fetching'){
+    el.textContent = msg.toUpperCase();
+    el.style.color = 'var(--amber)';
+  } else if(status === 'error'){
+    el.textContent = 'WEATHER ERROR';
+    el.style.color = 'var(--red)';
+  } else {
+    el.style.color = '';
+  }
+}
+
+function updateWeatherUI(){
+  if(!weather) return;
+
+  // Header bar
+  document.getElementById('hdr-temp').textContent = weather.temp.toFixed(1)+'°C';
+  const locName = weather.city
+    ? `${weather.city}${weather.country ? ', '+weather.country : ''}`
+    : `${weather.lat.toFixed(3)}, ${weather.lon.toFixed(3)}`;
+  document.getElementById('hdr-loc').textContent = locName.toUpperCase();
+  document.getElementById('hdr-loc').style.color = '';
+
+  // Weather chips
+  document.getElementById('w-temp').textContent =
+    weather.temp.toFixed(1)+'°C'+
+    (weather.feelsLike != null ? ` · feels ${weather.feelsLike.toFixed(0)}°` : '');
+  document.getElementById('w-hum').textContent   = weather.humidity+'%';
+  document.getElementById('w-wind').textContent  =
+    weather.wind.toFixed(0)+' km/h '+windDirLabel(weather.windDir)+
+    (weather.windGusts ? ` · gusts ${weather.windGusts.toFixed(0)}` : '');
+  document.getElementById('w-baro').textContent  =
+    weather.pressure ? weather.pressure.toFixed(0)+' hPa' : '0 hPa';
+  document.getElementById('w-cloud').textContent = weather.cloud+'%';
+  const precipEl = document.getElementById('w-precip');
+  if(precipEl) precipEl.textContent = (weather.precip||0).toFixed(1)+' mm';
+
+  // Source attribution line
+  const age = weather.fetchedAt
+    ? Math.round((Date.now()-weather.fetchedAt)/60000) : null;
+  const ageStr = age !== null ? (age < 1 ? ' · just now' : ` · ${age}m ago`) : '';
+  const condStr = wmoDesc(weather.weatherCode);
+  const gpsTag  = weather.locSource === 'gps'
+    ? ' · <span style="color:var(--green)">GPS</span>' : '';
+  const srcLink = weather.sourceUrl
+    ? `<a href="${weather.sourceUrl}" style="color:var(--amber);text-decoration:none" target="_blank">${weather.sourceShort}</a>`
+    : `<strong style="color:var(--amber)">${weather.sourceShort}</strong>`;
+  document.getElementById('weather-source').innerHTML =
+    `${srcLink} · ${weather.time}${ageStr}` +
+    (condStr ? ` · ${condStr}` : '') +
+    gpsTag;
+
+  updateRecommendation();
+}
+
+function updateRecommendation(){
+  if(!weather) return;
+  const cp = optCold(weather.temp);
+  const ho = cp + riseModel(weather.temp);
+  const u  = UNITS[currentUnit];
+  ['fl','fr','rl','rr'].forEach(c=>{
+    document.getElementById('rec-'+c).textContent =
+      u.fromBar(cp).toFixed(UNITS[currentUnit].decimals);
+  });
+  document.getElementById('rec-note').textContent =
+    `At ${weather.temp.toFixed(1)}°C → est. ${u.fromBar(ho).toFixed(UNITS[currentUnit].decimals)} ${currentUnit} hot | Rise: +${riseModel(weather.temp).toFixed(3)} bar`;
+}
+
+function fillWeatherFromGPS(){
+  if(weather){
+    document.getElementById('f-temp').value     = weather.temp.toFixed(1);
+    document.getElementById('f-humidity').value = weather.humidity;
+    document.getElementById('f-wind').value     = weather.wind.toFixed(0);
+    toast('Weather filled — '+(weather.sourceShort||weather.source));
+  } else {
+    refreshWeather();
+    toast('Fetching weather — try again in a moment');
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  LAP ENTRY
+// ═══════════════════════════════════════════════
+function addLapRow(val=''){
+  const list = document.getElementById('lap-list');
+  const n = list.children.length + 1;
+  const row = document.createElement('div');
+  row.className = 'lap-entry-row';
+  row.innerHTML = `
+    <span class="lap-num">${n}</span>
+    <input type="text" placeholder="0.00" value="${val}" oninput="highlightBestLap()" class="lap-input">
+    <div class="lap-best-mark" title="Best lap"></div>
+    <button class="lap-del-btn" onclick="removeLap(this)" title="Remove">×</button>
+  `;
+  list.appendChild(row);
+  highlightBestLap();
+}
+
+function removeLap(btn){
+  btn.closest('.lap-entry-row').remove();
+  renumberLaps();
+  highlightBestLap();
+}
+
+function renumberLaps(){
+  document.querySelectorAll('#lap-list .lap-num').forEach((el,i)=>el.textContent=i+1);
+}
+
+function parseLap(s){
+  s = s.trim();
+  if(!s) return null;
+  if(s.includes(':')){ const [m,rest]=s.split(':'); return parseFloat(m)*60+parseFloat(rest); }
+  return parseFloat(s);
+}
+
+function highlightBestLap(){
+  const rows = [...document.querySelectorAll('#lap-list .lap-entry-row')];
+  const times = rows.map(r=>parseLap(r.querySelector('.lap-input').value));
+  const clean = times.filter(t=>t!==null&&!isNaN(t)&&t<60);
+  if(!clean.length){ rows.forEach(r=>r.querySelector('.lap-best-mark').classList.remove('show')); return; }
+  const best = Math.min(...clean);
+  rows.forEach((r,i)=>{
+    const t=times[i];
+    r.querySelector('.lap-best-mark').classList.toggle('show', t===best);
+  });
+}
+
+function importCSV(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').map(l=>l.trim()).filter(Boolean);
+    document.getElementById('lap-list').innerHTML = '';
+    let added = 0;
+    lines.forEach(line => {
+      const cols = line.split(/[,\t;]/);
+      const candidate = cols.find(c => /[\d:.]+/.test(c.trim()));
+      if(candidate){
+        const t = parseLap(candidate.trim());
+        if(t && !isNaN(t) && t > 1){ addLapRow(candidate.trim()); added++; }
+      }
+    });
+    toast(`Imported ${added} lap times`);
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// ═══════════════════════════════════════════════
+//  SAVE SESSION
+// ═══════════════════════════════════════════════
+function saveSession(){
+  const laps = [...document.querySelectorAll('#lap-list .lap-input')]
+    .map(i=>parseLap(i.value)).filter(t=>t!==null&&!isNaN(t));
+
+  const sess = {
+    id: Date.now(),
+    name:       document.getElementById('f-session-name').value || `Session ${sessions.length+1}`,
+    circuit:    document.getElementById('f-circuit').value || '—',
+    date:       document.getElementById('f-date').value || new Date().toISOString().split('T')[0],
+    time:       document.getElementById('f-time').value || '',
+    chassis:    document.getElementById('f-chassis').value || '',
+    engine:     document.getElementById('f-engine').value || '',
+    tires:      document.getElementById('f-tires').value || '',
+    tireAge:    document.getElementById('f-tire-age').value || '',
+    setupNotes: document.getElementById('f-setup-notes').value || '',
+    cold: {
+      fl: readPressureBar('p-fl-cold'),
+      fr: readPressureBar('p-fr-cold'),
+      rl: readPressureBar('p-rl-cold'),
+      rr: readPressureBar('p-rr-cold'),
+    },
+    hot: {
+      fl: readPressureBar('p-fl-hot'),
+      fr: readPressureBar('p-fr-hot'),
+      rl: readPressureBar('p-rl-hot'),
+      rr: readPressureBar('p-rr-hot'),
+    },
+    laps,
+    weather: weather ? {...weather} : null,
+    conditions: {
+      temp:     parseFloat(document.getElementById('f-temp').value)||null,
+      humidity: parseFloat(document.getElementById('f-humidity').value)||null,
+      wind:     parseFloat(document.getElementById('f-wind').value)||null,
+    }
+  };
+
+  sessions.unshift(sess);
+  localStorage.setItem('kp_sessions', JSON.stringify(sessions));
+  toast('Session saved');
+  clearForm();
+  showScreen('history');
+}
+
+function clearForm(){
+  ['f-session-name','f-circuit','f-time','f-chassis','f-engine','f-tires','f-tire-age','f-setup-notes',
+   'p-fl-cold','p-fr-cold','p-rl-cold','p-rr-cold','p-fl-hot','p-fr-hot','p-rl-hot','p-rr-hot',
+   'f-temp','f-humidity','f-wind'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('lap-list').innerHTML = '';
+  addLapRow(); addLapRow(); addLapRow();
+  // Re-apply current unit to restore labels/placeholders/steps after clear
+  setUnit(currentUnit);
+}
+
+// ═══════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════
+function renderDashboard(){
+  if(weather) updateWeatherUI();
+
+  // Last session card
+  const el = document.getElementById('last-session-card');
+  if(!sessions.length){
+    el.innerHTML = `<div class="empty-state"><div class="es-icon">⏱</div><div class="es-title">No sessions yet</div><div class="es-sub">Go to Session tab to log your first run.</div></div>`;
+  } else {
+    const s = sessions[0];
+    const clean = s.laps.filter(t=>t<60);
+    const best  = clean.length ? Math.min(...clean) : null;
+    const avg   = clean.length ? clean.reduce((a,b)=>a+b,0)/clean.length : null;
+    const rise  = (s.cold.fl&&s.hot.fl) ? s.hot.fl-s.cold.fl : null;
+    el.innerHTML = `
+      <div class="session-item" onclick="openModal(0)">
+        <div class="session-item-header">
+          <div class="session-name">${s.name}</div>
+          <div class="badge badge-amber">${s.date}</div>
+        </div>
+        <div class="session-meta">${s.circuit} ${s.time ? '· '+s.time : ''}</div>
+        <div class="stat-grid three">
+          <div class="stat-box"><div class="stat-label">Best lap</div><div class="stat-value green">${best ? formatLap(best) : '0.00'}</div></div>
+          <div class="stat-box"><div class="stat-label">Avg lap</div><div class="stat-value">${avg ? formatLap(avg) : '0.00'}</div></div>
+          <div class="stat-box"><div class="stat-label">Cold FL/FR</div><div class="stat-value amber">${s.cold.fl ? barToDisplay(s.cold.fl) : '0.00'} ${currentUnit}</div></div>
+        </div>
+      </div>`;
+  }
+
+  // Trend chart
+  if(trendChart){ trendChart.destroy(); trendChart=null; }
+  const canvas = document.getElementById('trend-chart');
+  if(sessions.length < 2){ canvas.parentElement.innerHTML = `<div style="text-align:center;padding:32px;font-size:12px;color:var(--text3)">Log 2+ sessions to see trend</div>`; return; }
+  const labels = sessions.slice().reverse().map(s=>`${s.date.slice(5)} ${s.name.slice(0,6)}`);
+  const bests  = sessions.slice().reverse().map(s=>{ const c=s.laps.filter(t=>t<60); return c.length?Math.min(...c):null; });
+  trendChart = new Chart(canvas, {
+    type:'line',
+    data:{ labels, datasets:[{ label:'Best lap', data:bests, borderColor:'#f5a623', backgroundColor:'rgba(245,166,35,0.08)', pointBackgroundColor:'#f5a623', tension:0.3, pointRadius:4, spanGaps:true }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ ticks:{color:'#555550',font:{size:9},maxRotation:30}, grid:{color:'rgba(255,255,255,0.04)'} },
+        y:{ reverse:true, ticks:{color:'#555550',font:{size:9},callback:v=>v.toFixed(2)+'s'}, grid:{color:'rgba(255,255,255,0.04)'} }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  HISTORY
+// ═══════════════════════════════════════════════
+function renderHistory(){
+  const el = document.getElementById('history-list');
+  if(!sessions.length){
+    el.innerHTML = `<div class="empty-state"><div class="es-icon">📋</div><div class="es-title">No sessions logged</div><div class="es-sub">Head to the Session tab to record your first run.</div></div>`;
+    return;
+  }
+  el.innerHTML = sessions.map((s,i)=>{
+    const clean = s.laps.filter(t=>t<60);
+    const best  = clean.length ? Math.min(...clean) : null;
+    const temp  = s.conditions?.temp || s.weather?.temp;
+    return `
+      <div class="session-item" onclick="openModal(${i})">
+        <div class="session-item-header">
+          <div class="session-name">${s.name}</div>
+          <span class="badge badge-amber">${s.date}</span>
+        </div>
+        <div class="session-meta">${s.circuit} ${s.time ? '· '+s.time : ''} ${temp ? '· '+parseFloat(temp).toFixed(1)+'°C' : ''}</div>
+        <div class="session-stats">
+          <div class="session-stat">Best <span>${best ? formatLap(best) : '0.00'}</span></div>
+          <div class="session-stat">Laps <span>${s.laps.length}</span></div>
+          <div class="session-stat">Cold FL <span>${s.cold.fl ? barToDisplay(s.cold.fl) : '0.00'} ${currentUnit}</span></div>
+          ${s.hot.fl ? `<div class="session-stat">Hot FL <span>${barToDisplay(s.hot.fl)} ${currentUnit}</span></div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  SESSION MODAL
+// ═══════════════════════════════════════════════
+function openModal(idx){
+  currentModalIdx = idx;
+  const s = sessions[idx];
+  document.getElementById('modal-title').textContent = s.name;
+
+  const clean = s.laps.filter(t=>t<60);
+  const best  = clean.length ? Math.min(...clean) : null;
+  const avg   = clean.length ? (clean.reduce((a,b)=>a+b,0)/clean.length) : null;
+  const temp  = s.conditions?.temp || s.weather?.temp;
+  const cp    = temp ? optCold(parseFloat(temp)) : null;
+
+  // Pressure analysis
+  const riseFL = (s.cold.fl&&s.hot.fl) ? (s.hot.fl-s.cold.fl).toFixed(3) : '0.000';
+  const riseFR = (s.cold.fr&&s.hot.fr) ? (s.hot.fr-s.cold.fr).toFixed(3) : '0.000';
+  const riseRL = (s.cold.rl&&s.hot.rl) ? (s.hot.rl-s.cold.rl).toFixed(3) : '0.000';
+  const riseRR = (s.cold.rr&&s.hot.rr) ? (s.hot.rr-s.cold.rr).toFixed(3) : '0.000';
+  const rearImb = (s.hot.rl&&s.hot.rr) ? Math.abs(s.hot.rl-s.hot.rr).toFixed(3) : null;
+
+  let html = `
+    <div class="stat-grid" style="margin-bottom:12px">
+      <div class="stat-box"><div class="stat-label">Circuit</div><div class="stat-value" style="font-size:14px">${s.circuit}</div></div>
+      <div class="stat-box"><div class="stat-label">Date / time</div><div class="stat-value" style="font-size:14px">${s.date} ${s.time}</div></div>
+    </div>
+    <div class="stat-grid three" style="margin-bottom:12px">
+      <div class="stat-box"><div class="stat-label">Best lap</div><div class="stat-value green">${best ? formatLap(best) : '0.00'}</div></div>
+      <div class="stat-box"><div class="stat-label">Avg clean</div><div class="stat-value">${avg ? formatLap(avg) : '0.00'}</div></div>
+      <div class="stat-box"><div class="stat-label">Laps</div><div class="stat-value">${s.laps.length}</div></div>
+    </div>`;
+
+  if(s.chassis||s.engine||s.tires){
+    html += `<div class="section-label" style="font-size:10px">Kart setup</div>
+    <div class="stat-grid three" style="margin-bottom:12px">
+      ${s.chassis?`<div class="stat-box"><div class="stat-label">Chassis</div><div class="stat-value" style="font-size:12px">${s.chassis}</div></div>`:''}
+      ${s.engine?`<div class="stat-box"><div class="stat-label">Engine</div><div class="stat-value" style="font-size:12px">${s.engine}</div></div>`:''}
+      ${s.tires?`<div class="stat-box"><div class="stat-label">Tires</div><div class="stat-value" style="font-size:12px">${s.tires}</div></div>`:''}
+    </div>`;
+  }
+
+  html += `<div class="section-label" style="font-size:10px">Tire pressures (${currentUnit})</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:12px;text-align:center">
+    ${['FL','FR','RL','RR'].map(c=>{ const k=c.toLowerCase();
+      const coldBar=s.cold[k], hotBar=s.hot[k];
+      const cold = barToDisplay(coldBar);
+      const hot  = barToDisplay(hotBar);
+      const rise = (coldBar!=null&&hotBar!=null) ? (hotBar-coldBar).toFixed(3) : null;
+      return `<div class="stat-box">
+        <div class="stat-label">${c}</div>
+        <div style="font-family:var(--font-mono);font-size:13px;color:var(--blue)">${cold}<span style="color:var(--text3);font-size:10px">c</span></div>
+        <div style="font-family:var(--font-mono);font-size:13px;color:var(--amber)">${hot}<span style="color:var(--text3);font-size:10px">h</span></div>
+        ${rise?`<div style="font-size:10px;color:var(--text3)">+${rise}<span style="font-size:9px"> bar</span></div>`:''}
+      </div>`; }).join('')}
+  </div>`;
+
+  if(rearImb && parseFloat(rearImb) > 0.04){
+    html += `<div style="background:var(--red-bg);border:1px solid rgba(255,71,87,.25);border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--red)">
+      ⚠ Rear imbalance: ${rearImb} bar (RL ${s.hot.rl} vs RR ${s.hot.rr}). Check alignment / valve integrity.
+    </div>`;
+  }
+
+  if(temp){
+    html += `<div class="section-label" style="font-size:10px">Conditions</div>
+    <div class="stat-grid three" style="margin-bottom:12px">
+      <div class="stat-box"><div class="stat-label">Temp</div><div class="stat-value amber">${parseFloat(temp).toFixed(1)}°C</div></div>
+      ${s.conditions?.humidity?`<div class="stat-box"><div class="stat-label">Humidity</div><div class="stat-value">${s.conditions.humidity}%</div></div>`:''}
+      ${s.conditions?.wind?`<div class="stat-box"><div class="stat-label">Wind</div><div class="stat-value">${s.conditions.wind} km/h</div></div>`:''}
+    </div>
+    ${cp?`<div style="font-size:11px;color:var(--text3);margin-bottom:12px">Pressure model at ${parseFloat(temp).toFixed(1)}°C: optimal cold = <span style="color:var(--amber);font-family:var(--font-mono)">${cp.toFixed(3)} bar</span></div>`:''}`;
+  }
+
+  if(s.laps.length){
+    html += `<div class="section-label" style="font-size:10px">Lap times</div><div>`;
+    html += s.laps.map((t,i)=>{
+      const isBest = clean.length && t===best;
+      const isOff  = t>=60;
+      const delta  = (clean.length && !isOff && !isBest) ? `+${(t-best).toFixed(2)}s` : '';
+      return `<div class="lap-row ${isBest?'best-lap':''} ${isOff?'off-lap':''}">
+        <span class="lr-num">${i+1}</span>
+        <span class="lr-time">${formatLap(t)}</span>
+        <span class="lr-delta">${isBest?'BEST':delta}</span>
+        ${isOff?'<span class="lr-flag" style="color:var(--red)">OFF</span>':''}
+      </div>`;
+    }).join('');
+    html += '</div>';
+
+    // Pressure progression chart — only shown if both cold AND hot pressures exist
+    const hasCold = s.cold.fl || s.cold.fr || s.cold.rl || s.cold.rr;
+    const hasHot  = s.hot.fl  || s.hot.fr  || s.hot.rl  || s.hot.rr;
+    if(hasCold && hasHot && s.laps.length >= 2) {
+      html += `
+        <div class="section-label" style="font-size:10px;margin-top:14px">Pressure progression through session</div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px">
+          <div style="position:relative;width:100%;height:180px"><canvas id="prog-chart"></canvas></div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-size:10px;color:var(--text3)">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:3px;background:#4a9eff;display:inline-block;border-radius:2px"></span>FL</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:3px;background:#39d98a;display:inline-block;border-radius:2px"></span>FR</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:3px;background:#f5a623;display:inline-block;border-radius:2px"></span>RL</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:3px;background:#ff4757;display:inline-block;border-radius:2px"></span>RR</span>
+            <span style="margin-left:auto;color:var(--text3)">Values in ${currentUnit} · C=cold, H=hot, est=interpolated</span>
+          </div>
+        </div>`;
+    }
+  }
+
+  if(s.setupNotes){
+    html += `<div class="section-label" style="font-size:10px;margin-top:12px">Setup notes</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.6;padding:10px;background:var(--bg3);border-radius:6px">${s.setupNotes}</div>`;
+  }
+
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('session-modal').classList.add('open');
+
+  // Render pressure progression chart if canvas exists
+  const progCanvas = document.getElementById('prog-chart');
+  if(progCanvas) renderProgressionChart(s, progCanvas);
+}
+
+function closeModal(){ document.getElementById('session-modal').classList.remove('open'); }
+
+function deleteSession(){
+  if(!confirm('Delete this session? This cannot be undone.')) return;
+  sessions.splice(currentModalIdx, 1);
+  localStorage.setItem('kp_sessions', JSON.stringify(sessions));
+  closeModal();
+  renderHistory();
+  toast('Session deleted');
+}
+
+// ═══════════════════════════════════════════════
+//  PRESSURE PROGRESSION CHART
+// ═══════════════════════════════════════════════
+function renderProgressionChart(s, canvas) {
+  const n = s.laps.length;
+  const labels = s.laps.map((_, i) => `Lap ${i + 1}`);
+
+  // Build per-corner pressure curves.
+  // Point 1 = cold (before lap 1), Point n+1 = hot (after final lap).
+  // Intermediate laps are linearly interpolated between cold and hot.
+  function buildCurve(coldBar, hotBar) {
+    if (coldBar == null && hotBar == null) return new Array(n + 2).fill(null);
+    const c = coldBar != null ? coldBar : hotBar;
+    const h = hotBar  != null ? hotBar  : coldBar;
+    const u = UNITS[currentUnit];
+    return Array.from({ length: n + 2 }, (_, i) => {
+      // i=0 → cold, i=n+1 → hot, i=1..n → interpolate
+      const frac = i / (n + 1);
+      const barVal = c + (h - c) * frac;
+      return parseFloat(u.fromBar(barVal).toFixed(UNITS[currentUnit].decimals));
+    });
+  }
+
+  const xLabels = ['Cold', ...s.laps.map((_, i) => `L${i + 1}`), 'Hot'];
+
+  const datasets = [
+    { label: 'FL', data: buildCurve(s.cold.fl, s.hot.fl), borderColor: '#4a9eff', backgroundColor: 'rgba(74,158,255,0.10)', tension: 0.35, pointRadius: 4, pointBackgroundColor: '#4a9eff', fill: false },
+    { label: 'FR', data: buildCurve(s.cold.fr, s.hot.fr), borderColor: '#39d98a', backgroundColor: 'rgba(57,217,138,0.08)', tension: 0.35, pointRadius: 4, pointBackgroundColor: '#39d98a', fill: false },
+    { label: 'RL', data: buildCurve(s.cold.rl, s.hot.rl), borderColor: '#f5a623', backgroundColor: 'rgba(245,166,35,0.08)', tension: 0.35, pointRadius: 4, pointBackgroundColor: '#f5a623', fill: false, borderDash: [4, 2] },
+    { label: 'RR', data: buildCurve(s.cold.rr, s.hot.rr), borderColor: '#ff4757', backgroundColor: 'rgba(255,71,87,0.08)',  tension: 0.35, pointRadius: 4, pointBackgroundColor: '#ff4757', fill: false, borderDash: [4, 2] },
+  ].filter(ds => ds.data.some(v => v !== null));
+
+  // Special styling for first (cold) and last (hot) points
+  datasets.forEach(ds => {
+    ds.pointRadius = ds.data.map((_, i) =>
+      i === 0 || i === ds.data.length - 1 ? 6 : 3
+    );
+    ds.pointStyle = ds.data.map((_, i) =>
+      i === 0 ? 'triangle' : i === ds.data.length - 1 ? 'rectRot' : 'circle'
+    );
+  });
+
+  // Compute y-axis bounds with padding
+  const allVals = datasets.flatMap(ds => ds.data).filter(v => v != null);
+  const minVal  = Math.min(...allVals);
+  const maxVal  = Math.max(...allVals);
+  const pad     = (maxVal - minVal) * 0.25 || 0.05 * UNITS[currentUnit].factor;
+  const yMin    = parseFloat((minVal - pad).toFixed(UNITS[currentUnit].decimals));
+  const yMax    = parseFloat((maxVal + pad).toFixed(UNITS[currentUnit].decimals));
+
+  // Optimal cold target line (bar → display unit)
+  const temp = s.conditions?.temp || s.weather?.temp;
+  let optAnnotations = {};
+  if (temp) {
+    const optBar  = optCold(parseFloat(temp));
+    const optDisp = parseFloat(UNITS[currentUnit].fromBar(optBar).toFixed(UNITS[currentUnit].decimals));
+    optAnnotations = {
+      optLine: {
+        type: 'line', yMin: optDisp, yMax: optDisp,
+        borderColor: 'rgba(245,166,35,0.4)', borderWidth: 1, borderDash: [6, 3],
+        label: { content: `Opt cold ${optDisp} ${currentUnit}`, display: true, position: 'end', color: '#c47d0e', font: { size: 9 }, backgroundColor: 'transparent', padding: 2 }
+      }
+    };
+  }
+
+  new Chart(canvas, {
+    type: 'line',
+    data: { labels: xLabels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(UNITS[currentUnit].decimals) + ' ' + currentUnit : '0.00'}`
+          },
+          backgroundColor: '#111',
+          titleColor: '#888',
+          bodyColor: '#e8e8e0',
+          borderColor: '#333',
+          borderWidth: 1
+        },
+        annotation: Object.keys(optAnnotations).length ? { annotations: optAnnotations } : {}
+      },
+      scales: {
+        x: {
+          ticks: { color: '#555550', font: { size: 9 } },
+          grid:  { color: 'rgba(255,255,255,0.04)' }
+        },
+        y: {
+          min: yMin,
+          max: yMax,
+          ticks: {
+            color: '#555550',
+            font: { size: 9 },
+            callback: v => v.toFixed(UNITS[currentUnit].decimals) + ' ' + currentUnit
+          },
+          grid: { color: 'rgba(255,255,255,0.06)' }
+        }
+      }
+    }
+  });
+}
+
+
+function renderGuide(){
+  const thisMonth = new Date().getMonth();
+  const tbody = document.getElementById('guide-tbody');
+  tbody.innerHTML = MONTHS.map((m,i)=>{
+    const t_mid  = midday(i), t_morn = morning(i), t_aft = afternoon(i);
+    const cp_mid = optCold(t_mid), cp_morn = optCold(t_morn), cp_aft = optCold(t_aft);
+    const lbl = pLabel(cp_mid, t_mid);
+    return `<tr class="${i===thisMonth?'current-month':''}">
+      <td style="font-family:var(--font-display);font-weight:700;font-size:13px">${m}${i===thisMonth?' ◀':''}</td>
+      <td>${t_mid.toFixed(1)}°C</td>
+      <td class="${pClass(cp_morn)}">${cp_morn.toFixed(2)}</td>
+      <td class="${pClass(cp_mid)}">${cp_mid.toFixed(2)}</td>
+      <td class="${pClass(cp_aft)}">${cp_aft.toFixed(2)}</td>
+      <td><span class="badge ${cp_mid>=0.73&&cp_mid<=0.78?'badge-green':cp_mid>0.78&&cp_mid<=0.81?'badge-blue':cp_mid<0.70?'badge-red':'badge-amber'}">${lbl}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Model chart
+  if(modelChart){ modelChart.destroy(); modelChart=null; }
+  const canvas = document.getElementById('model-chart');
+  const temps = Array.from({length:36},(_,i)=>i-5);
+  const coldVals = temps.map(t=>optCold(t));
+  const hotVals  = temps.map((t,i)=>coldVals[i]+riseModel(t));
+  modelChart = new Chart(canvas, {
+    type:'line',
+    data:{ labels:temps.map(t=>t+'°C'), datasets:[
+      { label:'Cold set', data:coldVals, borderColor:'#4a9eff', backgroundColor:'rgba(74,158,255,0.07)', tension:0.4, pointRadius:0 },
+      { label:'Est. hot', data:hotVals,  borderColor:'#f5a623', backgroundColor:'rgba(245,166,35,0.05)', tension:0.4, pointRadius:0, borderDash:[4,3] }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:true, labels:{ color:'#888880', font:{size:9}, boxWidth:12, padding:10 } } },
+      scales:{
+        x:{ ticks:{color:'#555550',font:{size:8},maxTicksLimit:10}, grid:{color:'rgba(255,255,255,0.04)'} },
+        y:{ ticks:{color:'#555550',font:{size:9},callback:v=>v.toFixed(2)+' b'}, grid:{color:'rgba(255,255,255,0.04)'} }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  PDF EXPORT
+// ═══════════════════════════════════════════════
+function exportSessionPDF(){
+  const s = sessions[currentModalIdx];
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'mm', format:'a4' });
+  const W = 210, M = 15;
+  let y = 20;
+
+  const line=(color='#222')=>{doc.setDrawColor(color);doc.line(M,y,W-M,y);y+=2;};
+  const heading=(txt,sz=14,color='#f5a623')=>{doc.setFontSize(sz);doc.setTextColor(color);doc.setFont('helvetica','bold');doc.text(txt,M,y);y+=sz*0.5;};
+  const body=(txt,sz=9,color='#333')=>{doc.setFontSize(sz);doc.setTextColor(color);doc.setFont('helvetica','normal');const lines=doc.splitTextToSize(txt,W-M*2);doc.text(lines,M,y);y+=lines.length*sz*0.45+1;};
+  const kv=(k,v,y2)=>{doc.setFont('helvetica','bold');doc.setTextColor('#555');doc.text(k,M,y2);doc.setFont('helvetica','normal');doc.setTextColor('#111');doc.text(String(v),M+42,y2);};
+  const checkPage=()=>{ if(y>270){ doc.addPage(); y=20; } };
+
+  // Header band
+  doc.setFillColor(10,10,10); doc.rect(0,0,210,14,'F');
+  doc.setFontSize(13); doc.setTextColor(245,166,35); doc.setFont('helvetica','bold');
+  doc.text('KARTPRESSURE — SESSION REPORT',M,10);
+  doc.setFontSize(8); doc.setTextColor(150,150,130);
+  doc.text(`Generated ${new Date().toLocaleDateString()}`,W-M,10,{align:'right'});
+  y=22;
+
+  heading(s.name, 16);
+  y+=2;
+  doc.setFontSize(10); doc.setTextColor(100); doc.setFont('helvetica','normal');
+  doc.text(`${s.circuit}  ·  ${s.date}  ${s.time}`, M, y); y+=8;
+  line('#e0e0e0'); y+=2;
+
+  // Kart setup
+  heading('Kart Setup', 11, '#333'); y+=1;
+  const setupItems = [
+    ['Chassis',s.chassis||'—'],['Engine',s.engine||'—'],
+    ['Tires',s.tires||'—'],['Tire age (sessions)',s.tireAge||'—']
+  ];
+  setupItems.forEach(([k,v],i)=>{ const col = i%2===0?M:M+90; if(i%2===0&&i>0)y+=6; kv(k+':',v,y); if(i%2===1)y+=6; });
+  if(setupItems.length%2===1) y+=6;
+  if(s.setupNotes){ body('Setup notes: '+s.setupNotes, 8, '#555'); }
+  y+=4; line(); y+=2;
+
+  // Pressures
+  heading('Tire Pressures', 11, '#333'); y+=1;
+  const corners = ['FL','FR','RL','RR'];
+  doc.setFillColor(240,240,240); doc.rect(M,y-1,W-M*2,7,'F');
+  doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(80);
+  const colX = [M+2, M+42, M+82, M+122];
+  corners.forEach((c,i)=>{ doc.text(c,colX[i],y+4); });
+  y+=9;
+  ['Cold (bar)','Hot (bar)','Rise (bar)'].forEach(row=>{
+    doc.setFont('helvetica','normal'); doc.setTextColor(80); doc.text(row,M,y+3.5);
+    corners.forEach((c,i)=>{
+      const k=c.toLowerCase();
+      let val='0.000';
+      if(row==='Cold (bar)') val = s.cold[k] != null ? String(s.cold[k]) : '0.000';
+      else if(row==='Hot (bar)') val = s.hot[k] != null ? String(s.hot[k]) : '0.000';
+      else val = (s.cold[k]&&s.hot[k]) ? '+'+(s.hot[k]-s.cold[k]).toFixed(3) : '0.000';
+      doc.setFont('helvetica','bold'); doc.setTextColor(row==='Cold (bar)'?'#185FA5':row==='Hot (bar)'?'#BA7517':'#555');
+      doc.text(String(val), colX[i]+14, y+3.5);
+    });
+    y+=7;
+  });
+  const rearImb = (s.hot.rl&&s.hot.rr)?Math.abs(s.hot.rl-s.hot.rr):null;
+  if(rearImb&&rearImb>0.04){
+    doc.setFillColor(255,230,230); doc.rect(M,y,W-M*2,7,'F');
+    doc.setFontSize(8); doc.setTextColor(180,0,0); doc.setFont('helvetica','bold');
+    doc.text(`⚠ Rear imbalance: ${rearImb.toFixed(3)} bar (RL ${s.hot.rl} vs RR ${s.hot.rr})`,M+2,y+4.5); y+=9;
+  }
+  y+=2; line(); y+=2;
+
+  // Weather / conditions
+  const temp = s.conditions?.temp || s.weather?.temp;
+  if(temp){
+    heading('Conditions', 11, '#333'); y+=1;
+    const cp = optCold(parseFloat(temp));
+    const condItems = [
+      ['Temperature', parseFloat(temp).toFixed(1)+'°C'],
+      ['Humidity', s.conditions?.humidity ? s.conditions.humidity+'%' : '0%'],
+      ['Wind', s.conditions?.wind ? s.conditions.wind+' km/h' : '0 km/h'],
+      ['Opt. cold pressure', cp.toFixed(3)+' bar'],
+      ['Est. hot pressure', (cp+riseModel(parseFloat(temp))).toFixed(3)+' bar'],
+    ];
+    condItems.forEach(([k,v],i)=>{ const col=i%2===0?M:M+90; if(i%2===0&&i>0)y+=6; kv(k+':',v,y); if(i%2===1)y+=6; });
+    if(condItems.length%2===1) y+=6;
+    if(s.weather?.source){ doc.setFontSize(7); doc.setTextColor(150); doc.setFont('helvetica','italic'); doc.text('Weather: '+s.weather.source,M,y); y+=5; }
+    y+=2; line(); y+=2;
+  }
+
+  // Laps
+  if(s.laps.length){
+    checkPage();
+    heading('Lap Times', 11, '#333'); y+=1;
+    const clean = s.laps.filter(t=>t<60);
+    const best  = clean.length ? Math.min(...clean) : null;
+    const colsX = [M+2, M+24, M+54, M+84];
+    doc.setFillColor(240,240,240); doc.rect(M,y-1,W-M*2,6,'F');
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(80);
+    ['#','Time','Delta','Note'].forEach((h,i)=>doc.text(h,colsX[i],y+3));
+    y+=7;
+    s.laps.forEach((t,i)=>{
+      checkPage();
+      const isBest = best!==null && t===best;
+      const isOff  = t>=60;
+      const delta  = (best!==null&&!isOff&&!isBest)?'+'+((t-best).toFixed(2))+'s':'';
+      if(isBest){ doc.setFillColor(230,248,238); doc.rect(M,y-1,W-M*2,6,'F'); }
+      if(isOff)  { doc.setFillColor(255,235,235); doc.rect(M,y-1,W-M*2,6,'F'); }
+      doc.setFont('helvetica', isBest?'bold':'normal');
+      doc.setTextColor(isBest?'#0a6b3f':isOff?'#b00':'#333');
+      doc.text(String(i+1), colsX[0], y+3);
+      doc.text(formatLap(t), colsX[1], y+3);
+      doc.text(isBest?'BEST':delta, colsX[2], y+3);
+      doc.text(isOff?'Off-lap':'', colsX[3], y+3);
+      y+=6;
+    });
+    if(best){
+      y+=2;
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor('#0a6b3f');
+      doc.text(`Best: ${formatLap(best)}  |  Avg clean: ${formatLap(clean.reduce((a,b)=>a+b,0)/clean.length)}  |  ${clean.length} clean laps of ${s.laps.length}`, M, y); y+=6;
+    }
+  }
+
+  // Footer
+  const pageCount = doc.internal.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    doc.setPage(i);
+    doc.setFontSize(7); doc.setTextColor(180); doc.setFont('helvetica','normal');
+    doc.text(`KartPressure  ·  ${s.name}  ·  ${s.circuit}  ·  Page ${i} of ${pageCount}`, M, 292);
+  }
+
+  doc.save(`kart_${s.name.replace(/\s+/g,'_')}_${s.date}.pdf`);
+  toast('PDF exported');
+}
+
+// ═══════════════════════════════════════════════
+//  STOPWATCH
+// ═══════════════════════════════════════════════
+const SW = {
+  running:      false,
+  startTime:    0,      // performance.now() when started
+  elapsed:      0,      // ms accumulated before last stop
+  lapStart:     0,      // elapsed ms at start of current lap
+  laps:         [],     // array of lap times in ms
+  sessionStart: null,   // Date when first started
+  raf:          null,
+};
+
+function swFmt(ms) {
+  const totalSec = ms / 1000;
+  const m  = Math.floor(totalSec / 60);
+  const s  = Math.floor(totalSec % 60);
+  const cs = Math.floor((ms % 1000));
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(cs).padStart(3,'0')}`;
+}
+
+function swFmtShort(ms) {
+  const totalSec = ms / 1000;
+  if(totalSec >= 60) {
+    const m = Math.floor(totalSec / 60);
+    const s = (totalSec % 60).toFixed(2).padStart(5,'0');
+    return `${m}:${s}`;
+  }
+  return (totalSec).toFixed(2) + 's';
+}
+
+function swTick() {
+  if(!SW.running) return;
+  const now     = performance.now();
+  const elapsed = SW.elapsed + (now - SW.startTime);
+  const lapMs   = elapsed - SW.lapStart;
+
+  document.getElementById('sw-time').textContent = swFmt(lapMs);
+
+  // Session total clock
+  if(SW.sessionStart) {
+    const sessMs = elapsed;
+    const sm = Math.floor(sessMs/60000), ss = Math.floor((sessMs%60000)/1000);
+    document.getElementById('sw-session-clock').textContent =
+      `SESSION  ${String(sm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+  }
+
+  // Live delta against best
+  if(SW.laps.length > 0) {
+    const best = Math.min(...SW.laps);
+    const delta = lapMs - best;
+    const dEl = document.getElementById('sw-last-delta');
+    if(delta > 0) {
+      dEl.textContent = '+' + (delta/1000).toFixed(2) + 's vs best';
+      dEl.className = 'sw-split-delta plus';
+    } else {
+      dEl.textContent = (delta/1000).toFixed(2) + 's vs best';
+      dEl.className = 'sw-split-delta minus';
+    }
+  }
+
+  SW.raf = requestAnimationFrame(swTick);
+}
+
+function swStart() {
+  if(SW.running) return;
+  if(!SW.sessionStart) SW.sessionStart = new Date();
+  SW.startTime = performance.now();
+  SW.running   = true;
+
+  document.getElementById('sw-time').classList.remove('sw-stopped');
+  document.getElementById('sw-time').classList.add('sw-running');
+  document.getElementById('sw-start-btn').disabled = true;
+  document.getElementById('sw-stop-btn').disabled  = false;
+  document.getElementById('sw-lap-btn').disabled   = false;
+
+  SW.raf = requestAnimationFrame(swTick);
+}
+
+function swStop() {
+  if(!SW.running) return;
+  SW.elapsed += performance.now() - SW.startTime;
+  SW.running  = false;
+  cancelAnimationFrame(SW.raf);
+
+  // Freeze display on current lap time
+  const lapMs = SW.elapsed - SW.lapStart;
+  document.getElementById('sw-time').textContent = swFmt(lapMs);
+  document.getElementById('sw-time').classList.remove('sw-running');
+  document.getElementById('sw-time').classList.add('sw-stopped');
+  document.getElementById('sw-start-btn').disabled = false;
+  document.getElementById('sw-stop-btn').disabled  = true;
+  document.getElementById('sw-lap-btn').disabled   = false; // still allow logging last lap when stopped
+}
+
+function swLap() {
+  const now       = performance.now();
+  const elapsed   = SW.running ? SW.elapsed + (now - SW.startTime) : SW.elapsed;
+  const lapMs     = elapsed - SW.lapStart;
+  SW.lapStart     = elapsed;
+  SW.laps.push(lapMs);
+
+  const lapSec = lapMs / 1000;
+  const clean  = SW.laps.filter(t => t/1000 < 120);
+  const best   = clean.length ? Math.min(...clean) : null;
+  const worst  = clean.length ? Math.max(...clean) : null;
+  const lapNum = SW.laps.length;
+
+  // Update summary
+  document.getElementById('sw-lapcount').textContent = lapNum;
+  document.getElementById('sw-last').textContent     = swFmtShort(lapMs);
+  if(best !== null) document.getElementById('sw-best').textContent = swFmtShort(best);
+
+  // Add row to live list
+  const isBest  = best !== null && lapMs === best;
+  const isWorst = worst !== null && lapMs === worst && clean.length > 1;
+  const delta   = (best !== null && !isBest) ? '+' + ((lapMs - best)/1000).toFixed(2) + 's' : '';
+  const listEl  = document.getElementById('sw-lap-list');
+  document.getElementById('sw-empty-msg')?.remove();
+
+  const row = document.createElement('div');
+  row.className = `sw-lap-row${isBest?' sw-best':isWorst?' sw-worst':''}`;
+  row.innerHTML = `
+    <span class="slr-num">${lapNum}</span>
+    <span class="slr-time">${swFmtShort(lapMs)}</span>
+    <span class="slr-delta">${delta}</span>
+    ${isBest  ? '<span class="slr-badge">BEST</span>'  : ''}
+    ${isWorst ? '<span class="slr-badge">SLOW</span>' : ''}
+  `;
+  // Prepend so newest is at top
+  listEl.insertBefore(row, listEl.firstChild);
+
+  // Scroll to top
+  listEl.scrollTop = 0;
+
+  // Enable send button
+  document.getElementById('sw-send-btn').disabled = false;
+
+  // Reset delta label
+  document.getElementById('sw-last-delta').textContent = '';
+
+  // Wake lock hint — keep screen on while timing
+  if(navigator.wakeLock) {
+    navigator.wakeLock.request('screen').catch(()=>{});
+  }
+}
+
+function swReset() {
+  if(SW.running) swStop();
+  if(SW.laps.length > 0 && !confirm('Reset stopwatch? Unsent laps will be lost.')) return;
+  cancelAnimationFrame(SW.raf);
+  SW.running = false; SW.startTime = 0; SW.elapsed = 0;
+  SW.lapStart = 0; SW.laps = []; SW.sessionStart = null;
+
+  document.getElementById('sw-time').textContent = '00:00.000';
+  document.getElementById('sw-time').className   = 'sw-time sw-stopped';
+  document.getElementById('sw-session-clock').textContent = 'SESSION  00:00';
+  document.getElementById('sw-last').textContent  = '—';
+  document.getElementById('sw-best').textContent  = '—';
+  document.getElementById('sw-lapcount').textContent = '0';
+  document.getElementById('sw-last-delta').textContent = '';
+  document.getElementById('sw-lap-list').innerHTML =
+    '<div class="sw-empty" id="sw-empty-msg">Start timer and tap LAP at each finish line crossing</div>';
+  document.getElementById('sw-start-btn').disabled = false;
+  document.getElementById('sw-stop-btn').disabled  = true;
+  document.getElementById('sw-lap-btn').disabled   = true;
+  document.getElementById('sw-send-btn').disabled  = true;
+}
+
+function swSendToList() {
+  if(!SW.laps.length) return;
+  document.getElementById('lap-list').innerHTML = '';
+  SW.laps.forEach(ms => addLapRow((ms/1000).toFixed(2)));
+  const count = SW.laps.length;
+  toast(`${count} lap${count>1?'s':''} sent to lap list`);
+  // Auto-set session start time if blank
+  if(SW.sessionStart && !document.getElementById('f-time').value) {
+    const h = String(SW.sessionStart.getHours()).padStart(2,'0');
+    const m = String(SW.sessionStart.getMinutes()).padStart(2,'0');
+    document.getElementById('f-time').value = `${h}:${m}`;
+  }
+  document.getElementById('sw-send-btn').disabled = true;
+  // Scroll down to lap list
+  document.getElementById('lap-list').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+
+function formatLap(t){
+  if(t==null||isNaN(t)) return '0.00';
+  if(t>=60){ const m=Math.floor(t/60), s=(t%60).toFixed(2).padStart(5,'0'); return `${m}:${s}`; }
+  return t.toFixed(2)+'s';
+}
+
+function toast(msg, dur=2500){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), dur);
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  document.getElementById('f-time').value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  addLapRow(); addLapRow(); addLapRow();
+  // Restore saved unit (sets labels, steps, placeholders)
+  setUnit(currentUnit);
+  renderDashboard();
+  renderGuide();
+  if(weather) updateWeatherUI();
+  // Auto-fetch weather on load — brief delay so page renders first
+  setTimeout(()=>{
+    if(weather && weather.fetchedAt && (Date.now()-weather.fetchedAt) < 10*60*1000){
+      // Cached weather less than 10 min old — use it, refresh quietly in background
+      updateWeatherUI();
+      setTimeout(refreshWeather, 3000);
+    } else {
+      refreshWeather();
+    }
+  }, 600);
+  // Close modal on overlay click
+  document.getElementById('session-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal(); });
+});
+</script>
+</body>
+</html>
