@@ -403,6 +403,31 @@ textarea { resize: vertical; min-height: 64px; font-size: 13px; }
 .lap-row.off-lap  .lr-time { color: var(--red); }
 .lap-row .lr-flag { font-size: 10px; }
 
+/* ── In-page tabs (session screen) ── */
+.inpage-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin: 0 -20px 20px;
+  padding: 0 20px;
+  background: var(--bg2);
+  position: sticky;
+  top: 105px;
+  z-index: 90;
+}
+.inpage-tab {
+  flex: 1;
+  padding: 10px 8px 9px;
+  font-family: var(--font-display);
+  font-size: 12px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; text-align: center;
+  color: var(--text3); border: none; background: none; cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+.inpage-tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+.inpage-panel { display: none; }
+.inpage-panel.active { display: block; }
+
 /* ── Unit switcher ── */
 .unit-switcher {
   display: flex; gap: 2px;
@@ -527,6 +552,46 @@ textarea { resize: vertical; min-height: 64px; font-size: 13px; }
 .sw-lap-row.sw-worst .slr-badge { background: var(--red-bg); color: var(--red); }
 .sw-empty { text-align:center; padding:20px; font-size:12px; color:var(--text3); }
 
+/* ── History select mode ── */
+.history-toolbar {
+  background: var(--bg2);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.select-indicator {
+  width: 18px; height: 18px; flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid var(--border2);
+  transition: background .15s, border-color .15s;
+}
+.select-indicator.active {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+.session-item.selectable { cursor: pointer; }
+.session-item.selected {
+  border-color: var(--amber);
+  background: var(--amber-bg);
+}
+
+/* ── Data list items ── */
+.data-list { display: flex; flex-direction: column; gap: 6px; }
+.data-item {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 9px 12px;
+  font-family: var(--font-mono); font-size: 13px; color: var(--text);
+}
+.data-item .di-del {
+  background: none; border: none; color: var(--text3);
+  font-size: 16px; cursor: pointer; padding: 0 2px;
+  transition: color .15s; flex-shrink: 0;
+}
+.data-item .di-del:hover { color: var(--red); }
+.data-empty { font-size:12px; color:var(--text3); padding:8px 0; text-align:center; }
+
 /* ── Pressure recommendation box ── */
 .rec-box {
   background: var(--amber-bg);
@@ -563,10 +628,11 @@ textarea { resize: vertical; min-height: 64px; font-size: 13px; }
 
   <!-- Nav -->
   <nav class="app-nav">
-    <button class="nav-tab active" onclick="showScreen('dashboard')">Dashboard</button>
+    <button class="nav-tab active" onclick="showScreen('dashboard')">Dash</button>
     <button class="nav-tab" onclick="showScreen('session')">Session</button>
     <button class="nav-tab" onclick="showScreen('history')">History</button>
     <button class="nav-tab" onclick="showScreen('guide')">Guide</button>
+    <button class="nav-tab" onclick="showScreen('data')">Data</button>
   </nav>
 
   <!-- ═══════════════════════════════════════════════
@@ -617,169 +683,283 @@ textarea { resize: vertical; min-height: 64px; font-size: 13px; }
   ════════════════════════════════════════════════ -->
   <div class="screen" id="screen-session">
 
-    <div class="section-label">Kart setup</div>
-    <div class="card">
-      <div class="form-row">
-        <div class="field-group">
-          <label class="field-label">Circuit / Track</label>
-          <input id="f-circuit" type="text" placeholder="e.g. Paju Circuit">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Date</label>
-          <input id="f-date" type="date">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="field-group">
-          <label class="field-label">Session name</label>
-          <input id="f-session-name" type="text" placeholder="e.g. Session 2">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Start time</label>
-          <input id="f-time" type="time">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="field-group">
-          <label class="field-label">Chassis</label>
-          <input id="f-chassis" type="text" placeholder="e.g. FA Kart OTK">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Engine</label>
-          <input id="f-engine" type="text" placeholder="e.g. Rotax Max 125cc">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="field-group">
-          <label class="field-label">Tire make</label>
-          <input id="f-tires" type="text" placeholder="e.g. Mojo">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Tire age (sessions)</label>
-          <input id="f-tire-age" type="number" placeholder="0" min="0">
-        </div>
-      </div>
-      <div class="form-row single">
-        <div class="field-group">
-          <label class="field-label">Setup notes</label>
-          <textarea id="f-setup-notes" placeholder="Camber, toe, seat position, sprocket, etc."></textarea>
-        </div>
-      </div>
+    <!-- In-page tab bar -->
+    <div class="inpage-tabs">
+      <button class="inpage-tab active" id="itab-setup"   onclick="showSessionTab('setup')">Setup</button>
+      <button class="inpage-tab"        id="itab-session" onclick="showSessionTab('session')">Session</button>
     </div>
 
-    <div class="section-label">Tire pressures</div>
-    <div class="card">
-      <!-- Unit switcher -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <span style="font-size:11px;color:var(--text3)">Measurement unit</span>
-        <div class="unit-switcher" id="unit-switcher">
-          <button class="unit-btn active" data-unit="bar"  onclick="setUnit('bar')">bar</button>
-          <button class="unit-btn"        data-unit="psi"  onclick="setUnit('psi')">psi</button>
-          <button class="unit-btn"        data-unit="kpa"  onclick="setUnit('kpa')">kPa</button>
+    <!-- ── PANEL 1: SETUP ── -->
+    <div class="inpage-panel active" id="ipanel-setup">
+
+      <div class="section-label">Kart setup</div>
+      <div class="card">
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Driver</label>
+            <select id="f-driver" onchange="syncDriverText(this)">
+              <option value="">— select —</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Date</label>
+            <input id="f-date" type="date">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Circuit / Track</label>
+            <select id="f-circuit-select" onchange="syncSelectText(this,'f-circuit')">
+              <option value="">— select —</option>
+            </select>
+            <input id="f-circuit" type="hidden">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Session name</label>
+            <input id="f-session-name" type="text" placeholder="e.g. Session 2">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Start time</label>
+            <input id="f-time" type="time">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Tire make</label>
+            <select id="f-tires-select" onchange="syncSelectText(this,'f-tires')">
+              <option value="">— select —</option>
+            </select>
+            <input id="f-tires" type="hidden">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Tire age (sessions)</label>
+            <input id="f-tire-age" type="number" placeholder="0" min="0">
+          </div>
+          <div class="field-group"></div>
         </div>
       </div>
 
-      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Cold start pressures — set before going out</div>
-      <div class="pressure-grid">
-        <div class="pressure-cell"><div class="p-pos">FL</div><input id="p-fl-cold" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-cold-fl">bar</div></div>
-        <div class="pressure-cell"><div class="p-pos">FR</div><input id="p-fr-cold" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-cold-fr">bar</div></div>
-        <div class="pressure-cell"><div class="p-pos">RL</div><input id="p-rl-cold" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-cold-rl">bar</div></div>
-        <div class="pressure-cell"><div class="p-pos">RR</div><input id="p-rr-cold" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-cold-rr">bar</div></div>
-      </div>
-
-      <div style="font-size:11px;color:var(--text3);margin:10px 0 10px">Hot pressures — measure immediately after session</div>
-      <div class="pressure-grid">
-        <div class="pressure-cell"><div class="p-pos">FL</div><input id="p-fl-hot" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-hot-fl">bar</div></div>
-        <div class="pressure-cell"><div class="p-pos">FR</div><input id="p-fr-hot" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-hot-fr">bar</div></div>
-        <div class="pressure-cell"><div class="p-pos">RL</div><input id="p-rl-hot" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-hot-rl">bar</div></div>
-        <div class="pressure-cell"><div class="p-pos">RR</div><input id="p-rr-hot" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-hot-rr">bar</div></div>
-      </div>
-
-      <div style="font-size:10px;color:var(--text3);margin-top:10px;line-height:1.6" id="unit-conversion-ref"></div>
-    </div>
-
-    <div class="section-label">Stopwatch</div>
-    <div class="sw-card">
-
-      <!-- Main display -->
-      <div class="sw-display">
-        <div class="sw-session-clock" id="sw-session-clock">SESSION  00:00</div>
-        <div class="sw-time sw-stopped" id="sw-time">00:00.000</div>
-        <div class="sw-splits-row">
-          <div class="sw-split">
-            <div class="sw-split-label">Last lap</div>
-            <div class="sw-split-val" id="sw-last">—</div>
-            <div class="sw-split-delta" id="sw-last-delta"></div>
+      <div class="section-label">Engine</div>
+      <div class="card">
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Engine</label>
+            <select id="f-engine-select" onchange="syncSelectText(this,'f-engine')">
+              <option value="">— select —</option>
+            </select>
+            <input id="f-engine" type="hidden">
           </div>
-          <div class="sw-split">
-            <div class="sw-split-label">Best lap</div>
-            <div class="sw-split-val best" id="sw-best">—</div>
+          <div class="field-group">
+            <label class="field-label">Serial #</label>
+            <input id="f-engine-serial" type="text" placeholder="0">
           </div>
-          <div class="sw-split">
-            <div class="sw-split-label">Lap #</div>
-            <div class="sw-split-val" id="sw-lapcount">0</div>
+        </div>
+        <div class="form-row three">
+          <div class="field-group">
+            <label class="field-label">Carb High</label>
+            <input id="f-carb-high" type="text" placeholder="0">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Carb Low</label>
+            <input id="f-carb-low" type="text" placeholder="0">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Spark Plug</label>
+            <input id="f-spark-plug" type="text" placeholder="0">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Gearing</label>
+            <input id="f-gearing" type="text" placeholder="0">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Muffler Length</label>
+            <input id="f-muffler-length" type="text" placeholder="0">
           </div>
         </div>
       </div>
 
-      <!-- Big LAP button -->
-      <button class="sw-lap-btn" id="sw-lap-btn" onclick="swLap()" disabled>
-        TAP TO LAP
-      </button>
-
-      <!-- Start / Stop / Reset / Send controls -->
-      <div class="sw-controls">
-        <button class="sw-ctrl-btn start" id="sw-start-btn" onclick="swStart()">Start</button>
-        <button class="sw-ctrl-btn stop"  id="sw-stop-btn"  onclick="swStop()"  disabled>Stop</button>
-        <button class="sw-ctrl-btn reset" id="sw-reset-btn" onclick="swReset()">Reset</button>
-        <button class="sw-ctrl-btn send"  id="sw-send-btn"  onclick="swSendToList()" disabled>Send laps</button>
-      </div>
-
-      <!-- Live lap list -->
-      <div class="sw-lap-list" id="sw-lap-list">
-        <div class="sw-empty" id="sw-empty-msg">Start timer and tap LAP at each finish line crossing</div>
-      </div>
-
-    </div>
-
-    <div class="section-label">Lap times</div>
-    <div class="card">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Format: ss.ms (e.g. 42.87) or mm:ss.ms (e.g. 1:15.58)</div>
-      <div id="lap-list"></div>
-      <div class="btn-row">
-        <button class="btn btn-secondary btn-sm" onclick="addLapRow()">+ Add lap</button>
-        <label class="btn btn-ghost btn-sm" style="cursor:pointer">
-          Import CSV
-          <input type="file" accept=".csv,.txt" onchange="importCSV(this)" style="display:none">
-        </label>
-      </div>
-    </div>
-
-    <div class="section-label">Conditions &amp; weather</div>
-    <div class="card">
-      <div class="form-row three">
-        <div class="field-group">
-          <label class="field-label">Temp (°C)</label>
-          <input id="f-temp" type="number" step="0.1" placeholder="10">
+      <div class="section-label">Chassis</div>
+      <div class="card">
+        <div class="form-row single">
+          <div class="field-group">
+            <label class="field-label">Chassis</label>
+            <select id="f-chassis-select" onchange="syncSelectText(this,'f-chassis')">
+              <option value="">— select —</option>
+            </select>
+            <input id="f-chassis" type="hidden">
+          </div>
         </div>
-        <div class="field-group">
-          <label class="field-label">Humidity (%)</label>
-          <input id="f-humidity" type="number" placeholder="60">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin:10px 0 8px">Front</div>
+        <div class="form-row three">
+          <div class="field-group">
+            <label class="field-label">Width (Spacer)</label>
+            <input id="f-front-width" type="text" placeholder="0">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Caster</label>
+            <input id="f-front-caster" type="text" placeholder="0">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Camber</label>
+            <input id="f-front-camber" type="text" placeholder="0">
+          </div>
         </div>
-        <div class="field-group">
-          <label class="field-label">Wind (km/h)</label>
-          <input id="f-wind" type="number" placeholder="5">
+        <div class="form-row three">
+          <div class="field-group">
+            <label class="field-label">Toe</label>
+            <input id="f-front-toe" type="text" placeholder="0">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Ride Height</label>
+            <input id="f-front-rh" type="text" placeholder="0">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Bar</label>
+            <input id="f-front-bar" type="text" placeholder="0">
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin:12px 0 8px">Rear</div>
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Axle Stiffness</label>
+            <input id="f-rear-axle" type="text" placeholder="0">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Width</label>
+            <input id="f-rear-width" type="text" placeholder="0">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Ride Height</label>
+            <input id="f-rear-rh" type="text" placeholder="0">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Third Bearing</label>
+            <input id="f-third-bearing" type="text" placeholder="0">
+          </div>
         </div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="fillWeatherFromGPS()" style="margin-top:4px">
-        Use GPS weather
-      </button>
-    </div>
 
-    <div class="btn-row" style="margin-bottom:32px">
-      <button class="btn btn-primary btn-full" onclick="saveSession()">Save Session</button>
-      <button class="btn btn-ghost btn-sm" onclick="clearForm()">Clear</button>
-    </div>
+      <div class="section-label">Additional notes</div>
+      <div class="card" style="margin-bottom:32px">
+        <div class="form-row single">
+          <div class="field-group">
+            <label class="field-label">Setup notes</label>
+            <textarea id="f-setup-notes" placeholder="Any additional notes…"></textarea>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /ipanel-setup -->
+
+    <!-- ── PANEL 2: SESSION ── -->
+    <div class="inpage-panel" id="ipanel-session">
+
+      <div class="section-label">Tire pressures</div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:11px;color:var(--text3)">Measurement unit</span>
+          <div class="unit-switcher" id="unit-switcher">
+            <button class="unit-btn active" data-unit="bar"  onclick="setUnit('bar')">bar</button>
+            <button class="unit-btn"        data-unit="psi"  onclick="setUnit('psi')">psi</button>
+            <button class="unit-btn"        data-unit="kpa"  onclick="setUnit('kpa')">kPa</button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Cold start pressures — set before going out</div>
+        <div class="pressure-grid">
+          <div class="pressure-cell"><div class="p-pos">FL</div><input id="p-fl-cold" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-cold-fl">bar</div></div>
+          <div class="pressure-cell"><div class="p-pos">FR</div><input id="p-fr-cold" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-cold-fr">bar</div></div>
+          <div class="pressure-cell"><div class="p-pos">RL</div><input id="p-rl-cold" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-cold-rl">bar</div></div>
+          <div class="pressure-cell"><div class="p-pos">RR</div><input id="p-rr-cold" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-cold-rr">bar</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin:10px 0 10px">Hot pressures — measure immediately after session</div>
+        <div class="pressure-grid">
+          <div class="pressure-cell"><div class="p-pos">FL</div><input id="p-fl-hot" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-hot-fl">bar</div></div>
+          <div class="pressure-cell"><div class="p-pos">FR</div><input id="p-fr-hot" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-hot-fr">bar</div></div>
+          <div class="pressure-cell"><div class="p-pos">RL</div><input id="p-rl-hot" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-hot-rl">bar</div></div>
+          <div class="pressure-cell"><div class="p-pos">RR</div><input id="p-rr-hot" type="number" step="0.01" placeholder="0.00"><div class="p-unit" id="unit-lbl-hot-rr">bar</div></div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.6" id="unit-conversion-ref"></div>
+      </div>
+
+      <div class="section-label">Stopwatch</div>
+      <div class="sw-card">
+        <div class="sw-display">
+          <div class="sw-session-clock" id="sw-session-clock">SESSION  00:00</div>
+          <div class="sw-time sw-stopped" id="sw-time">00:00.000</div>
+          <div class="sw-splits-row">
+            <div class="sw-split">
+              <div class="sw-split-label">Last lap</div>
+              <div class="sw-split-val" id="sw-last">—</div>
+              <div class="sw-split-delta" id="sw-last-delta"></div>
+            </div>
+            <div class="sw-split">
+              <div class="sw-split-label">Best lap</div>
+              <div class="sw-split-val best" id="sw-best">—</div>
+            </div>
+            <div class="sw-split">
+              <div class="sw-split-label">Lap #</div>
+              <div class="sw-split-val" id="sw-lapcount">0</div>
+            </div>
+          </div>
+        </div>
+        <button class="sw-lap-btn" id="sw-lap-btn" onclick="swLap()" disabled>TAP TO LAP</button>
+        <div class="sw-controls">
+          <button class="sw-ctrl-btn start" id="sw-start-btn" onclick="swStart()">Start</button>
+          <button class="sw-ctrl-btn stop"  id="sw-stop-btn"  onclick="swStop()"  disabled>Stop</button>
+          <button class="sw-ctrl-btn reset" id="sw-reset-btn" onclick="swReset()">Reset</button>
+          <button class="sw-ctrl-btn send"  id="sw-send-btn"  onclick="swSendToList()" disabled>Send laps</button>
+        </div>
+        <div class="sw-lap-list" id="sw-lap-list">
+          <div class="sw-empty" id="sw-empty-msg">Start timer and tap LAP at each finish line crossing</div>
+        </div>
+      </div>
+
+      <div class="section-label">Lap times</div>
+      <div class="card">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Format: ss.ms (e.g. 42.87) or mm:ss.ms (e.g. 1:15.58)</div>
+        <div id="lap-list"></div>
+        <div class="btn-row">
+          <button class="btn btn-secondary btn-sm" onclick="addLapRow()">+ Add lap</button>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+            Import CSV
+            <input type="file" accept=".csv,.txt" onchange="importCSV(this)" style="display:none">
+          </label>
+        </div>
+      </div>
+
+      <div class="section-label">Conditions &amp; weather</div>
+      <div class="card">
+        <div class="form-row three">
+          <div class="field-group">
+            <label class="field-label">Temp (°C)</label>
+            <input id="f-temp" type="number" step="0.1" placeholder="10">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Humidity (%)</label>
+            <input id="f-humidity" type="number" placeholder="60">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Wind (km/h)</label>
+            <input id="f-wind" type="number" placeholder="5">
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="fillWeatherFromGPS()" style="margin-top:4px">
+          Use GPS weather
+        </button>
+      </div>
+
+      <div class="btn-row" style="margin-bottom:32px">
+        <button class="btn btn-primary btn-full" onclick="saveSession()">Save Session</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearForm()">Clear</button>
+      </div>
+
+    </div><!-- /ipanel-session -->
 
   </div>
 
@@ -787,6 +967,35 @@ textarea { resize: vertical; min-height: 64px; font-size: 13px; }
        SCREEN 3: HISTORY
   ════════════════════════════════════════════════ -->
   <div class="screen" id="screen-history">
+
+    <!-- Export / Import toolbar -->
+    <div class="history-toolbar" id="history-toolbar" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="section-label" style="margin:0;flex:1">Select to export</span>
+        <button class="btn btn-ghost btn-sm" onclick="historySelectAll()">All</button>
+        <button class="btn btn-ghost btn-sm" onclick="historySelectNone()">None</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" id="export-btn" onclick="exportSelected()" disabled>
+          Export selected JSON
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleSelectMode(false)">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Normal toolbar (shown when not selecting) -->
+    <div class="history-normal-toolbar" id="history-normal-toolbar">
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="toggleSelectMode(true)">
+          Export sessions
+        </button>
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+          Import JSON
+          <input type="file" accept=".json" onchange="importSessionsJSON(this)" style="display:none">
+        </label>
+      </div>
+    </div>
+
     <div id="history-list"></div>
   </div>
 
@@ -836,6 +1045,58 @@ textarea { resize: vertical; min-height: 64px; font-size: 13px; }
     <p style="font-size:10px;color:var(--text3);margin-top:8px">
       Based on Paju historical climate data. Model calibrated on March 7, 2026 session (Mojo / Rotax Max 125cc).
     </p>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SCREEN 5: DATA (pre-saved entries)
+  ════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-data">
+
+    <div class="section-label">Driver names</div>
+    <div class="card">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input id="new-driver" type="text" placeholder="Driver name" style="flex:1">
+        <button class="btn btn-primary btn-sm" onclick="addDataEntry('drivers','new-driver')">Add</button>
+      </div>
+      <div id="list-drivers" class="data-list"></div>
+    </div>
+
+    <div class="section-label">Circuits / Tracks</div>
+    <div class="card">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input id="new-circuit" type="text" placeholder="Circuit or track name" style="flex:1">
+        <button class="btn btn-primary btn-sm" onclick="addDataEntry('circuits','new-circuit')">Add</button>
+      </div>
+      <div id="list-circuits" class="data-list"></div>
+    </div>
+
+    <div class="section-label">Chassis</div>
+    <div class="card">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input id="new-chassis" type="text" placeholder="e.g. FA Kart OTK" style="flex:1">
+        <button class="btn btn-primary btn-sm" onclick="addDataEntry('chassis','new-chassis')">Add</button>
+      </div>
+      <div id="list-chassis" class="data-list"></div>
+    </div>
+
+    <div class="section-label">Engines</div>
+    <div class="card">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input id="new-engine" type="text" placeholder="e.g. Rotax Max Senior 125cc" style="flex:1">
+        <button class="btn btn-primary btn-sm" onclick="addDataEntry('engines','new-engine')">Add</button>
+      </div>
+      <div id="list-engines" class="data-list"></div>
+    </div>
+
+    <div class="section-label">Tire makes</div>
+    <div class="card" style="margin-bottom:32px">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input id="new-tire" type="text" placeholder="e.g. Mojo" style="flex:1">
+        <button class="btn btn-primary btn-sm" onclick="addDataEntry('tires','new-tire')">Add</button>
+      </div>
+      <div id="list-tires" class="data-list"></div>
+    </div>
 
   </div>
 
@@ -899,8 +1160,85 @@ function pLabel(p,t){
 }
 
 // ═══════════════════════════════════════════════
-//  UNIT CONVERSION
+//  DATA TAB — pre-saved entries
 // ═══════════════════════════════════════════════
+const DATA_KEYS = { drivers:'kp_drivers', circuits:'kp_circuits', chassis:'kp_chassis', engines:'kp_engines', tires:'kp_tires' };
+let dataStore = {};
+Object.entries(DATA_KEYS).forEach(([k,lk])=>{
+  dataStore[k] = JSON.parse(localStorage.getItem(lk)||'[]');
+});
+
+function saveDataStore(key){
+  localStorage.setItem(DATA_KEYS[key], JSON.stringify(dataStore[key]));
+}
+
+function addDataEntry(key, inputId){
+  const el = document.getElementById(inputId);
+  const val = el.value.trim();
+  if(!val){ toast('Please enter a value'); return; }
+  if(dataStore[key].includes(val)){ toast('Already saved'); return; }
+  dataStore[key].push(val);
+  saveDataStore(key);
+  el.value = '';
+  renderDataList(key);
+  populateDropdowns();
+  toast('Saved');
+}
+
+function deleteDataEntry(key, val){
+  dataStore[key] = dataStore[key].filter(v=>v!==val);
+  saveDataStore(key);
+  renderDataList(key);
+  populateDropdowns();
+}
+
+function renderDataList(key){
+  const listId = { drivers:'list-drivers', circuits:'list-circuits', chassis:'list-chassis', engines:'list-engines', tires:'list-tires' }[key];
+  const el = document.getElementById(listId);
+  if(!el) return;
+  if(!dataStore[key].length){
+    el.innerHTML = `<div class="data-empty">No entries yet</div>`;
+    return;
+  }
+  el.innerHTML = dataStore[key].map(v=>`
+    <div class="data-item">
+      <span>${v}</span>
+      <button class="di-del" onclick="deleteDataEntry('${key}','${v.replace(/'/g,"\\'")}')">×</button>
+    </div>`).join('');
+}
+
+function renderAllDataLists(){
+  Object.keys(DATA_KEYS).forEach(k=>renderDataList(k));
+}
+
+function populateDropdowns(){
+  const map = [
+    { key:'drivers',  selId:'f-driver' },
+    { key:'circuits', selId:'f-circuit-select' },
+    { key:'chassis',  selId:'f-chassis-select' },
+    { key:'engines',  selId:'f-engine-select' },
+    { key:'tires',    selId:'f-tires-select' },
+  ];
+  map.forEach(({key, selId})=>{
+    const sel = document.getElementById(selId);
+    if(!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">— select —</option>` +
+      dataStore[key].map(v=>`<option value="${v}">${v}</option>`).join('');
+    if(cur) sel.value = cur;
+  });
+}
+
+function syncSelectText(sel, textId){
+  const textEl = document.getElementById(textId);
+  if(textEl && sel.value) textEl.value = sel.value;
+}
+
+function syncDriverText(sel){
+  // Driver is only a select, no paired text input
+}
+
+
 const UNITS = {
   bar: { toBar: v=>v,           fromBar: v=>v,           step:'0.01', decimals:3, factor:1       },
   psi: { toBar: v=>v/14.5038,   fromBar: v=>v*14.5038,   step:'0.1',  decimals:1, factor:14.5038 },
@@ -953,16 +1291,9 @@ function setUnit(newUnit) {
     if(el) el.placeholder = hotPlaceholders[newUnit];
   });
 
-  // Show conversion reference
+  // Conversion ref div is kept but left empty
   const ref = document.getElementById('unit-conversion-ref');
-  if(ref) {
-    const keyVals = newUnit==='bar'
-      ? '0.73 bar = 10.6 psi = 73 kPa  ·  0.76 bar = 11.0 psi = 76 kPa  ·  0.87 bar = 12.6 psi = 87 kPa'
-      : newUnit==='psi'
-      ? '10.6 psi = 0.73 bar  ·  11.0 psi = 0.76 bar  ·  12.6 psi = 0.87 bar  ·  13.5 psi = 0.93 bar'
-      : '73 kPa = 0.73 bar  ·  76 kPa = 0.76 bar  ·  87 kPa = 0.87 bar  ·  93 kPa = 0.93 bar';
-    ref.textContent = 'Reference: ' + keyVals;
-  }
+  if(ref) ref.textContent = '';
 
   currentUnit = newUnit;
   localStorage.setItem('kp_unit', newUnit);
@@ -990,15 +1321,23 @@ function showScreen(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
-  const tabs = ['dashboard','session','history','guide'];
+  const tabs = ['dashboard','session','history','guide','data'];
   document.querySelectorAll('.nav-tab')[tabs.indexOf(name)].classList.add('active');
   if(name==='dashboard') renderDashboard();
   if(name==='history')   renderHistory();
   if(name==='guide')     renderGuide();
+  if(name==='data')      renderAllDataLists();
 }
 
-// ═══════════════════════════════════════════════
-//  WEATHER — Source chain
+// ── In-page session tabs ──────────────────────────────────────────────────────
+function showSessionTab(tab){
+  ['setup','session'].forEach(t=>{
+    document.getElementById('ipanel-'+t).classList.toggle('active', t===tab);
+    document.getElementById('itab-'+t).classList.toggle('active', t===tab);
+  });
+}
+
+
 //
 //  PRIMARY:  KMA LDPS 1.5 km model via Open-Meteo
 //            Same forecast model used by weather.go.kr (기상청 날씨누리).
@@ -1370,6 +1709,7 @@ function saveSession(){
   const sess = {
     id: Date.now(),
     name:       document.getElementById('f-session-name').value || `Session ${sessions.length+1}`,
+    driver:     document.getElementById('f-driver').value || '',
     circuit:    document.getElementById('f-circuit').value || '—',
     date:       document.getElementById('f-date').value || new Date().toISOString().split('T')[0],
     time:       document.getElementById('f-time').value || '',
@@ -1378,6 +1718,30 @@ function saveSession(){
     tires:      document.getElementById('f-tires').value || '',
     tireAge:    document.getElementById('f-tire-age').value || '',
     setupNotes: document.getElementById('f-setup-notes').value || '',
+    engineSetup: {
+      serial:       document.getElementById('f-engine-serial').value || '',
+      carbHigh:     document.getElementById('f-carb-high').value || '',
+      carbLow:      document.getElementById('f-carb-low').value || '',
+      sparkPlug:    document.getElementById('f-spark-plug').value || '',
+      gearing:      document.getElementById('f-gearing').value || '',
+      mufflerLength:document.getElementById('f-muffler-length').value || '',
+    },
+    chassisSetup: {
+      front: {
+        width:      document.getElementById('f-front-width').value || '',
+        caster:     document.getElementById('f-front-caster').value || '',
+        camber:     document.getElementById('f-front-camber').value || '',
+        toe:        document.getElementById('f-front-toe').value || '',
+        rideHeight: document.getElementById('f-front-rh').value || '',
+        bar:        document.getElementById('f-front-bar').value || '',
+      },
+      rear: {
+        axleStiffness: document.getElementById('f-rear-axle').value || '',
+        width:         document.getElementById('f-rear-width').value || '',
+        rideHeight:    document.getElementById('f-rear-rh').value || '',
+        thirdBearing:  document.getElementById('f-third-bearing').value || '',
+      }
+    },
     cold: {
       fl: readPressureBar('p-fl-cold'),
       fr: readPressureBar('p-fr-cold'),
@@ -1408,12 +1772,16 @@ function saveSession(){
 
 function clearForm(){
   ['f-session-name','f-circuit','f-time','f-chassis','f-engine','f-tires','f-tire-age','f-setup-notes',
+   'f-engine-serial','f-carb-high','f-carb-low','f-spark-plug','f-gearing','f-muffler-length',
+   'f-front-width','f-front-caster','f-front-camber','f-front-toe','f-front-rh','f-front-bar',
+   'f-rear-axle','f-rear-width','f-rear-rh','f-third-bearing',
    'p-fl-cold','p-fr-cold','p-rl-cold','p-rr-cold','p-fl-hot','p-fr-hot','p-rl-hot','p-rr-hot',
    'f-temp','f-humidity','f-wind'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['f-driver','f-circuit-select','f-chassis-select','f-engine-select','f-tires-select']
+    .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('lap-list').innerHTML = '';
   addLapRow(); addLapRow(); addLapRow();
-  // Re-apply current unit to restore labels/placeholders/steps after clear
   setUnit(currentUnit);
 }
 
@@ -1470,6 +1838,51 @@ function renderDashboard(){
 // ═══════════════════════════════════════════════
 //  HISTORY
 // ═══════════════════════════════════════════════
+let historySelectMode = false;
+
+function toggleSelectMode(on){
+  historySelectMode = on;
+  document.getElementById('history-toolbar').style.display       = on ? 'block' : 'none';
+  document.getElementById('history-normal-toolbar').style.display = on ? 'none' : 'block';
+  renderHistory();
+}
+
+function historySelectAll(){
+  document.querySelectorAll('.session-item.selectable').forEach(el=>{
+    el.classList.add('selected');
+    el.dataset.selected = '1';
+    const ind = el.querySelector('.select-indicator');
+    if(ind) ind.classList.add('active');
+  });
+  updateExportBtn();
+}
+
+function historySelectNone(){
+  document.querySelectorAll('.session-item.selectable').forEach(el=>{
+    el.classList.remove('selected');
+    el.dataset.selected = '0';
+    const ind = el.querySelector('.select-indicator');
+    if(ind) ind.classList.remove('active');
+  });
+  updateExportBtn();
+}
+
+function updateExportBtn(){
+  const count = document.querySelectorAll('.session-item.selectable.selected').length;
+  const btn = document.getElementById('export-btn');
+  if(!btn) return;
+  btn.disabled = count === 0;
+  btn.textContent = count > 0 ? `Export ${count} session${count>1?'s':''} JSON` : 'Export selected JSON';
+}
+
+function toggleSessionSelect(idx, el){
+  const isSelected = el.classList.toggle('selected');
+  el.dataset.selected = isSelected ? '1' : '0';
+  const ind = el.querySelector('.select-indicator');
+  if(ind) ind.classList.toggle('active', isSelected);
+  updateExportBtn();
+}
+
 function renderHistory(){
   const el = document.getElementById('history-list');
   if(!sessions.length){
@@ -1480,6 +1893,24 @@ function renderHistory(){
     const clean = s.laps.filter(t=>t<60);
     const best  = clean.length ? Math.min(...clean) : null;
     const temp  = s.conditions?.temp || s.weather?.temp;
+    if(historySelectMode){
+      return `
+        <div class="session-item selectable" onclick="toggleSessionSelect(${i}, this)" data-idx="${i}">
+          <div class="session-item-header">
+            <div style="display:flex;align-items:center;gap:10px;flex:1">
+              <div class="select-indicator" id="sel-ind-${i}"></div>
+              <div class="session-name">${s.name}</div>
+            </div>
+            <span class="badge badge-amber">${s.date}</span>
+          </div>
+          <div class="session-meta">${s.circuit} ${s.time ? '· '+s.time : ''} ${temp ? '· '+parseFloat(temp).toFixed(1)+'°C' : ''}</div>
+          <div class="session-stats">
+            <div class="session-stat">Best <span>${best ? formatLap(best) : '0.00'}</span></div>
+            <div class="session-stat">Laps <span>${s.laps.length}</span></div>
+            <div class="session-stat">Cold FL <span>${s.cold.fl ? barToDisplay(s.cold.fl) : '0.00'} ${currentUnit}</span></div>
+          </div>
+        </div>`;
+    }
     return `
       <div class="session-item" onclick="openModal(${i})">
         <div class="session-item-header">
@@ -1495,6 +1926,72 @@ function renderHistory(){
         </div>
       </div>`;
   }).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  EXPORT / IMPORT JSON
+// ═══════════════════════════════════════════════
+function exportSelected(){
+  const selected = [...document.querySelectorAll('.session-item.selectable.selected')];
+  if(!selected.length){ toast('No sessions selected'); return; }
+
+  const indices = selected.map(el => parseInt(el.dataset.idx));
+  const toExport = indices.map(i=>sessions[i]);
+
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    appVersion: 'KartPressure',
+    sessionCount: toExport.length,
+    sessions: toExport
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `kartpressure_sessions_${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast(`Exported ${toExport.length} session${toExport.length>1?'s':''}`);
+  toggleSelectMode(false);
+}
+
+function importSessionsJSON(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      // Accept either wrapped format {sessions:[...]} or bare array
+      const incoming = Array.isArray(data) ? data : (data.sessions || []);
+      if(!incoming.length){ toast('No sessions found in file'); return; }
+
+      // Deduplicate by session id — skip any that already exist
+      const existingIds = new Set(sessions.map(s=>s.id));
+      const fresh = incoming.filter(s=>!existingIds.has(s.id));
+      const dupes = incoming.length - fresh.length;
+
+      if(!fresh.length){
+        toast(`All ${incoming.length} sessions already exist`);
+        return;
+      }
+
+      // Merge: prepend new sessions, keep existing order
+      sessions = [...fresh, ...sessions];
+      localStorage.setItem('kp_sessions', JSON.stringify(sessions));
+      renderHistory();
+      let msg = `Imported ${fresh.length} session${fresh.length>1?'s':''}`;
+      if(dupes > 0) msg += ` · ${dupes} duplicate${dupes>1?'s':''} skipped`;
+      toast(msg, 3500);
+    } catch(err){
+      toast('Invalid file — could not read JSON');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
 }
 
 // ═══════════════════════════════════════════════
@@ -1529,13 +2026,59 @@ function openModal(idx){
       <div class="stat-box"><div class="stat-label">Laps</div><div class="stat-value">${s.laps.length}</div></div>
     </div>`;
 
-  if(s.chassis||s.engine||s.tires){
+  if(s.chassis||s.engine||s.tires||s.driver){
     html += `<div class="section-label" style="font-size:10px">Kart setup</div>
     <div class="stat-grid three" style="margin-bottom:12px">
+      ${s.driver?`<div class="stat-box"><div class="stat-label">Driver</div><div class="stat-value" style="font-size:12px">${s.driver}</div></div>`:''}
       ${s.chassis?`<div class="stat-box"><div class="stat-label">Chassis</div><div class="stat-value" style="font-size:12px">${s.chassis}</div></div>`:''}
       ${s.engine?`<div class="stat-box"><div class="stat-label">Engine</div><div class="stat-value" style="font-size:12px">${s.engine}</div></div>`:''}
       ${s.tires?`<div class="stat-box"><div class="stat-label">Tires</div><div class="stat-value" style="font-size:12px">${s.tires}</div></div>`:''}
     </div>`;
+  }
+
+  // Engine setup detail
+  const es = s.engineSetup;
+  if(es && Object.values(es).some(v=>v)){
+    html += `<div class="section-label" style="font-size:10px">Engine setup</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">
+      ${es.serial?`<div class="stat-box"><div class="stat-label">Serial #</div><div class="stat-value" style="font-size:12px">${es.serial}</div></div>`:''}
+      ${es.carbHigh?`<div class="stat-box"><div class="stat-label">Carb High</div><div class="stat-value" style="font-size:12px">${es.carbHigh}</div></div>`:''}
+      ${es.carbLow?`<div class="stat-box"><div class="stat-label">Carb Low</div><div class="stat-value" style="font-size:12px">${es.carbLow}</div></div>`:''}
+      ${es.sparkPlug?`<div class="stat-box"><div class="stat-label">Spark Plug</div><div class="stat-value" style="font-size:12px">${es.sparkPlug}</div></div>`:''}
+      ${es.gearing?`<div class="stat-box"><div class="stat-label">Gearing</div><div class="stat-value" style="font-size:12px">${es.gearing}</div></div>`:''}
+      ${es.mufflerLength?`<div class="stat-box"><div class="stat-label">Muffler Len.</div><div class="stat-value" style="font-size:12px">${es.mufflerLength}</div></div>`:''}
+    </div>`;
+  }
+
+  // Chassis setup detail
+  const cs = s.chassisSetup;
+  if(cs){
+    const f = cs.front||{}, r = cs.rear||{};
+    const hasFront = Object.values(f).some(v=>v);
+    const hasRear  = Object.values(r).some(v=>v);
+    if(hasFront||hasRear){
+      html += `<div class="section-label" style="font-size:10px">Chassis setup</div>`;
+      if(hasFront){
+        html += `<div style="font-size:10px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Front</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+          ${f.width?`<div class="stat-box"><div class="stat-label">Width</div><div class="stat-value" style="font-size:12px">${f.width}</div></div>`:''}
+          ${f.caster?`<div class="stat-box"><div class="stat-label">Caster</div><div class="stat-value" style="font-size:12px">${f.caster}</div></div>`:''}
+          ${f.camber?`<div class="stat-box"><div class="stat-label">Camber</div><div class="stat-value" style="font-size:12px">${f.camber}</div></div>`:''}
+          ${f.toe?`<div class="stat-box"><div class="stat-label">Toe</div><div class="stat-value" style="font-size:12px">${f.toe}</div></div>`:''}
+          ${f.rideHeight?`<div class="stat-box"><div class="stat-label">Ride Height</div><div class="stat-value" style="font-size:12px">${f.rideHeight}</div></div>`:''}
+          ${f.bar?`<div class="stat-box"><div class="stat-label">Bar</div><div class="stat-value" style="font-size:12px">${f.bar}</div></div>`:''}
+        </div>`;
+      }
+      if(hasRear){
+        html += `<div style="font-size:10px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Rear</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+          ${r.axleStiffness?`<div class="stat-box"><div class="stat-label">Axle Stiffness</div><div class="stat-value" style="font-size:12px">${r.axleStiffness}</div></div>`:''}
+          ${r.width?`<div class="stat-box"><div class="stat-label">Width</div><div class="stat-value" style="font-size:12px">${r.width}</div></div>`:''}
+          ${r.rideHeight?`<div class="stat-box"><div class="stat-label">Ride Height</div><div class="stat-value" style="font-size:12px">${r.rideHeight}</div></div>`:''}
+          ${r.thirdBearing?`<div class="stat-box"><div class="stat-label">3rd Bearing</div><div class="stat-value" style="font-size:12px">${r.thirdBearing}</div></div>`:''}
+        </div>`;
+      }
+    }
   }
 
   html += `<div class="section-label" style="font-size:10px">Tire pressures (${currentUnit})</div>
@@ -2115,6 +2658,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   addLapRow(); addLapRow(); addLapRow();
   // Restore saved unit (sets labels, steps, placeholders)
   setUnit(currentUnit);
+  // Populate dropdowns from saved data
+  populateDropdowns();
   renderDashboard();
   renderGuide();
   if(weather) updateWeatherUI();
